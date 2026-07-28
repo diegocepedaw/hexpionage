@@ -263,28 +263,62 @@ a machine and needs manual attention on the Studio test table.
 You need a BGA Studio account and the `hexpionage` project (it exists —
 `studio.boardgamearena.com/studiogame?game=hexpionage`).
 
-1. **Upload.** `src/`'s *contents* go to the Studio project root:
+1. **Get your SFTP credentials.** They are *not* your Studio website login. BGA
+   emailed them separately when your developer account was created — subject line
+   mentions SFTP, and it contains a server name, a username and a password.
+
+   Better: skip the password entirely. Generate a dedicated key and upload the
+   public half at <https://studio.boardgamearena.com/controlpanel>:
    ```bash
-   BGA_SFTP_HOST=1.studio.boardgamearena.com \
-   BGA_SFTP_PORT=2022 \
-   BGA_SFTP_USER=<you> \
-   BGA_SFTP_PASSWORD=<secret> \
-   python3 scripts/upload_to_bga.py --verify
+   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_bga -C "bga studio"
+   pbcopy < ~/.ssh/id_ed25519_bga.pub     # paste into the control panel
    ```
-   Add `--dry-run` first to see the file list without connecting. Credentials come
-   only from the environment and are never written to disk.
-2. **Delete leftovers on the remote.** The Studio skeleton ships stub state classes
+   BGA disables password auth once a key is uploaded, which is a good thing.
+
+   Lost the email and have no key uploaded? The control panel is the place to
+   re-check your SFTP username and manage keys; if the password is unrecoverable,
+   ask on the BGA developers Discord / `#bga-devs` — admins reissue them.
+
+2. **Configure.** Put this in a git-ignored `.env.bga` at the repo root:
+   ```
+   BGA_SFTP_HOST=1.studio.boardgamearena.com
+   BGA_SFTP_PORT=2022
+   BGA_SFTP_USER=yourname
+   BGA_SFTP_KEY=~/.ssh/id_ed25519_bga
+   ```
+   Then test without sending anything:
+   ```bash
+   python3 scripts/upload_to_bga.py --check
+   ```
+
+3. **Upload.** `src/`'s *contents* go to the Studio project root:
+   ```bash
+   python3 scripts/upload_to_bga.py --dry-run   # file list, no connection
+   python3 scripts/upload_to_bga.py --verify    # upload, then list the remote
+   ```
+   For password auth instead of a key: `pip install paramiko`, set
+   `BGA_SFTP_PASSWORD`, and the script switches automatically.
+
+4. **Delete leftovers on the remote.** The Studio skeleton ships stub state classes
    (`PlayerTurn`, `NextPlayer`, `EndScore`) under `modules/php/States/`. They will
    collide with ours. Delete them. Also make sure no `hexpionage.game.php` or
    `hexpionage.js` survives at the remote root from the pre-refactor era.
-3. **Dry run.** In Studio, "Manage games" → your project → **Dry run build**. Compare
+5. **Dry run.** In Studio, "Manage games" → your project → **Dry run build**. Compare
    against `docs/history/HAL_DRY_RUN.md`; every item listed there is now fixed locally, so a clean
    report is the expectation.
-4. **Play.** "Express Start" a 2-player table (open the second seat in another
-   browser profile) and work through `docs/testing/SCENARIOS.md`.
-5. **Watch the logs.** Studio surfaces PHP errors in the table's error console; the
-   offline harness catches most of them first, but framework-API mismatches can only
-   surface here.
+6. **Play.** Create a table in **Manual / Turn-based** mode, then click
+   **Express Start** — it seats your own dev accounts (dev0, dev1) automatically so
+   you do not need a second browser login. Use the little red arrow beside a player
+   name to view the table as that player. Work through `docs/testing/SCENARIOS.md`.
+
+7. **Watch the logs.** Below the game area, Studio exposes *Go to game database*
+   (phpMyAdmin on the live tables — useful for checking our invariants by hand),
+   *BGA request&SQL logs*, and *BGA unexpected exceptions logs*. The offline harness
+   catches most defects first, but framework-API mismatches can only surface here.
+
+   The *Save & restore state* controls give you 3 slots per table — invaluable for
+   the rare paths the simulation under-covers (`analystBonusSkipped`, the Hacker
+   actions): save the position just before, then replay it as often as you need.
 
 ### 5.3 Where the offline harness stops
 

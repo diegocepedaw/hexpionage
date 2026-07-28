@@ -80,15 +80,27 @@ or exact BGA framework API fidelity — those need a Studio test table.
 `src/`'s **contents** go to the Studio project root; `src/` itself is not uploaded.
 
 ```bash
-BGA_SFTP_HOST=1.studio.boardgamearena.com \
-BGA_SFTP_PORT=2022 \
-BGA_SFTP_USER=<you> \
-BGA_SFTP_PASSWORD=<secret> \
-python3 scripts/upload_to_bga.py --verify
+python3 scripts/upload_to_bga.py --dry-run    # what would be sent, no connection
+python3 scripts/upload_to_bga.py --check      # test credentials, upload nothing
+python3 scripts/upload_to_bga.py --verify     # upload, then list the remote
 ```
 
-Add `--dry-run` first to see the file list without connecting. Credentials are read
-from the environment only and are never written to disk — **do not commit them.**
+Credentials come from a git-ignored `.env.bga` at the repo root, or from the
+environment. **SSH-key auth is preferred** — upload a public key at
+[the Studio control panel](https://studio.boardgamearena.com/controlpanel) and no
+secret ever needs to exist in this repo or your shell history:
+
+```
+# .env.bga
+BGA_SFTP_HOST=1.studio.boardgamearena.com
+BGA_SFTP_PORT=2022
+BGA_SFTP_USER=yourname
+BGA_SFTP_KEY=~/.ssh/id_ed25519_bga
+```
+
+Password auth still works (`BGA_SFTP_PASSWORD`, needs `pip install paramiko`); note
+that BGA disables it once you upload a key. See
+[`ONBOARDING.md` §5.2](ONBOARDING.md) for where these credentials come from.
 
 ## License and rights
 

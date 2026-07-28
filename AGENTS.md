@@ -56,8 +56,10 @@ replays it deterministically.
   game code; if `src/` needs a stub workaround, that is a finding, not a fix.
 - **Do not edit `design/masters/`.** Those are print-production masters for the
   published physical game, stored in Git LFS. They are read-only inputs.
-- **Do not commit credentials.** `scripts/upload_to_bga.py` takes BGA Studio SFTP
-  credentials from environment variables only. Keep it that way.
+- **Do not commit credentials.** `scripts/upload_to_bga.py` reads BGA Studio SFTP
+  settings from the environment or a git-ignored `.env.bga`. Prefer SSH-key auth
+  (`BGA_SFTP_KEY`) so no password exists anywhere. Never paste a password into a
+  file, a commit, or a chat transcript.
 - **Historical docs stay historical.** `docs/history/` records what was planned and
   what happened. Do not "fix" its stale paths — annotate if needed.
 
