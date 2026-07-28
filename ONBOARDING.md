@@ -321,8 +321,8 @@ For context on the most recent pass (all changes are in `src/` and `tools/`):
    framework version wasn't confirmed. Verify on Studio and remove the shim.
 8. **~95 S2/S3 review items** in `tests/CODE_REVIEW_*.md` are open by choice. All S0
    and S1 items are resolved.
-9. **No version control.** This directory is not a git repo. Before anyone else
-   touches it: `git init && git add -A && git commit`.
+9. **No remote.** The project is now a local git repo with a single baseline commit,
+   but there is no remote yet. Push it somewhere before anyone else touches it.
 
 ---
 
