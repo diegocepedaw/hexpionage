@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — TrickleResolve state
- * per specs/STATE_MACHINE.md §2.5, §8.5 + rulebook §7.2 + DECISIONS.md (D-21, D-23, D-24)
+ * per docs/specs/STATE_MACHINE.md §2.5, §8.5 + rulebook §7.2 + DECISIONS.md (D-21, D-23, D-24)
  *
  * Resolution algorithm (rulebook §7.2 + §9.3 EDGE O-01 + [D-24]):
  *   Step A: compute intended targets per dice
@@ -79,7 +79,7 @@ class TrickleResolve extends GameState
                 'off_board' => false,
             ];
 
-            // [G-02] Per assets/BOARD_LAYOUT.md, the board consists of Field hexes
+            // [G-02] Per design/BOARD_LAYOUT.md, the board consists of Field hexes
             // (lavender, agents-allowed) AND orange "intel rain" hexes (intel transits).
             // Trickle "off-board" means leaving the union of both regions.
             $is_on_board = function (int $q, int $r) use ($game): bool {

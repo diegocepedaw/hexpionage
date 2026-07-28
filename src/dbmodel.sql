@@ -1,5 +1,5 @@
 -- Hexpionage — BGA database schema
--- per specs/STATE_MODEL.md §2 + DECISIONS.md (D-04, D-06b, D-07, D-10b, D-15, D-19)
+-- per docs/specs/STATE_MODEL.md §2 + DECISIONS.md (D-04, D-06b, D-07, D-10b, D-15, D-19)
 
 -- ------------------------------------------------------------------
 -- Player table extensions (BGA provides `player` automatically)

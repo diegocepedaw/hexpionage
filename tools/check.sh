@@ -2,10 +2,10 @@
 #
 # tools/check.sh — run every offline check for Hexpionage.
 #
-#   ./tools/check.sh            # fast:  lint + contract + 40 playouts
-#   ./tools/check.sh 300        # slow:  lint + contract + 300 playouts
+#   ./tools/check.sh            # fast:  lint + contract + links + 40 playouts
+#   ./tools/check.sh 300        # slow:  lint + contract + links + 300 playouts
 #
-# Requires: php 8.1+ (brew install php), node (any recent version).
+# Requires: php 8.1+ (brew install php), node, python3 (all preinstalled or brew).
 # Nothing here touches BGA Studio; it all runs locally in ~1-70 seconds.
 
 set -uo pipefail
@@ -31,6 +31,9 @@ done
 
 step "server/client contract"
 php tools/harness/check_contract.php || fail "contract mismatch"
+
+step "cross-references"
+python3 scripts/check_links.py || fail "broken in-repo references"
 
 step "rules engine ($GAMES simulated games)"
 php tools/harness/run_tests.php --games="$GAMES" || fail "playout failures"

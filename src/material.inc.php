@@ -1,13 +1,13 @@
 <?php
 /**
  * Hexpionage — static material constants
- * per specs/STATE_MODEL.md §3 + DECISIONS.md (D-01, D-19) + rulebook §2
+ * per docs/specs/STATE_MODEL.md §3 + DECISIONS.md (D-01, D-19) + rulebook §2
  *
  * Notes:
  *   - Hex coordinate scheme: pointy-top axial (q, r). [STATE_MODEL §3]
  *   - G-01 / G-02 are RESOLVED. The hex tables below are the canonical
  *     44-hex layout read off final_printing/game board/game_board_print.png
- *     and recorded in assets/BOARD_LAYOUT.md:
+ *     and recorded in design/BOARD_LAYOUT.md:
  *       30 lavender Field hexes (r=0..3, rows of 6/7/8/9)
  *       14 orange "intel rain" hexes (r=-4..-1, rows of 2/3/4/5)
  *        9 spawn-row hexes (the r=3 Field row)
@@ -87,7 +87,7 @@ const BLOCKADE_STATE_EXPIRED  = 2;
 // Die-color → intel-type mapping is 1:1 per [D-19]; we reuse INTEL_TYPES.
 
 // ---- Hex coordinate constants (G-02 resolved) -------------------------------
-// Canonical board layout per assets/BOARD_LAYOUT.md.
+// Canonical board layout per design/BOARD_LAYOUT.md.
 //   - 30 lavender Field hexes (r=0..3) — agents may move/spawn/retire here.
 //   - 14 orange "intel rain" hexes (r=-4..-1) — agents NOT allowed; intel transits.
 //   -  9 spawn-row hexes (✦ row, r=3, q=-2..6).
@@ -96,7 +96,7 @@ const BLOCKADE_STATE_EXPIRED  = 2;
 // Coordinate scheme: pointy-top axial (q, r) per STATE_MODEL §3.3. G-01 confirmed.
 
 /**
- * Canonical Field hex enumeration per assets/BOARD_LAYOUT.md.
+ * Canonical Field hex enumeration per design/BOARD_LAYOUT.md.
  * Bottom row (r=3) is the spawn row (9 hexes); top of Field is r=0 (6 hexes).
  */
 const ALL_FIELD_HEXES = [
@@ -144,7 +144,7 @@ const ALL_SPAWN_ROW_HEXES = [
 ];
 
 /**
- * Intel entry hexes per rulebook §5.1 + assets/BOARD_LAYOUT.md.
+ * Intel entry hexes per rulebook §5.1 + design/BOARD_LAYOUT.md.
  * Trickle entry sites; visible labels "1" and "2" on the printed art.
  */
 const INTEL_ENTRY_HEX_TOP_LEFT  = ['q' => 1, 'r' => -4]; // labeled "1"
@@ -152,7 +152,7 @@ const INTEL_ENTRY_HEX_TOP_RIGHT = ['q' => 3, 'r' => -4]; // labeled "2"
 
 /**
  * Field hex test (lavender; agents may stand here). Per rulebook §2.6.
- * Table-driven per assets/BOARD_LAYOUT.md (G-02 resolved).
+ * Table-driven per design/BOARD_LAYOUT.md (G-02 resolved).
  */
 function hexpionage_is_field_hex(int $q, int $r): bool
 {

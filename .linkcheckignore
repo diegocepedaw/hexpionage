@@ -1,0 +1,20 @@
+# Paths that scripts/check_links.py should not flag as broken.
+# One glob per line; `#` starts a comment. Keep this list short and justified —
+# it is an escape hatch, not a dumping ground.
+
+# --- Pre-refactor filenames, cited in migration notes on purpose ---------------
+# These files no longer exist. They are named in "was previously X" comments and
+# in review documents written against the legacy BGA layout.
+src/hexpionage.js
+src/hexpionage.game.php
+src/gameinfos.inc.php
+src/stats.inc.php
+
+# --- Art-pipeline outputs that do not exist yet -------------------------------
+# design/PIPELINE.md and design/MISSING.md specify artifacts to be produced.
+# Delete these lines as the real files land. See design/MISSING.md.
+design/generated/*
+design/hex_mask_450.png
+src/img/sprites.css
+src/img/dice.png
+src/img/board

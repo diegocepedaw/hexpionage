@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — Actions state
- * per specs/STATE_MACHINE.md §2.7, §11.4 + rulebook §5.3
+ * per docs/specs/STATE_MACHINE.md §2.7, §11.4 + rulebook §5.3
  *
  * Discriminator (F-09 / F-18 fix): a per-turn flag `actions_phase_initialized`
  * (an integer holding the current turn_id once initialized). This prevents the

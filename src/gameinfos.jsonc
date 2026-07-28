@@ -1,6 +1,6 @@
 /*
  * Hexpionage — game metadata (modern BGA JSONC format)
- * per specs/BGA_CHECKLIST.md + DECISIONS.md (D-02, D-03, D-12b, D-13)
+ * per docs/specs/BGA_CHECKLIST.md + DECISIONS.md (D-02, D-03, D-12b, D-13)
  *
  * HAL fix (modern framework):
  *   - suggest_player_number is a single integer (not an array).

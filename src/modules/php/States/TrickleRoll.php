@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — TrickleRoll state
- * per specs/STATE_MACHINE.md §2.4, §8.4 + rulebook §5.1 step 3
+ * per docs/specs/STATE_MACHINE.md §2.4, §8.4 + rulebook §5.1 step 3
  *
  * modern BGA: constructor-based GameState replaces legacy property form.
  */

@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — GameSetup state
- * per specs/STATE_MACHINE.md §2.1, §8.1 + STATE_MODEL.md §8 + DECISIONS.md (D-16)
+ * per docs/specs/STATE_MACHINE.md §2.1, §8.1 + STATE_MODEL.md §8 + DECISIONS.md (D-16)
  *
  * modern BGA: constructor-based GameState (id/type/name passed via parent
  * __construct named args) replaces the legacy property-based form per HAL.

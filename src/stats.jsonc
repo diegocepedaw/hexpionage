@@ -1,6 +1,6 @@
 /*
  * Hexpionage — statistics declarations
- * per specs/BGA_CHECKLIST.md (alpha gate; meaningful per-player stats)
+ * per docs/specs/BGA_CHECKLIST.md (alpha gate; meaningful per-player stats)
  */
 {
     "table": {

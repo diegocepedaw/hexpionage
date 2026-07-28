@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — EndOfTurnCleanup state
- * per specs/STATE_MACHINE.md §2.8, §8.6 + rulebook §7.4 + DECISIONS.md (D-06a, D-07, D-17)
+ * per docs/specs/STATE_MACHINE.md §2.8, §8.6 + rulebook §7.4 + DECISIONS.md (D-06a, D-07, D-17)
  *
  * modern BGA: constructor-based GameState replaces legacy property form.
  */

@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — Spawn state
- * per specs/STATE_MACHINE.md §2.6 + rulebook §5.2 + §6.1 + §6.2
+ * per docs/specs/STATE_MACHINE.md §2.6 + rulebook §5.2 + §6.1 + §6.2
  *
  * modern BGA: constructor-based GameState replaces legacy property form.
  * Action methods (#[PossibleAction] actSpawnAgent / actPassSpawn) remain on

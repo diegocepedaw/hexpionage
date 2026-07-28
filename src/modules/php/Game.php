@@ -2,8 +2,8 @@
 /**
  * Hexpionage — main game class (modern BGA framework)
  *
- * per specs/STATE_MODEL.md, specs/STATE_MACHINE.md, specs/CONTRACT.md,
- * specs/BGA_PRIMER.md, rulebook.md, and DECISIONS.md (D-01..D-26).
+ * per docs/specs/STATE_MODEL.md, docs/specs/STATE_MACHINE.md, docs/specs/CONTRACT.md,
+ * docs/specs/BGA_PRIMER.md, rulebook.md, and DECISIONS.md (D-01..D-26).
  *
  * Implementation discipline:
  *   - All RNG via bga_rand($min, $max). NEVER mt_rand / RAND() / shuffle().
@@ -341,7 +341,7 @@ class Game extends \Bga\GameFramework\Table
             'game_winner' => (($v = $this->bga->globals->get('game_winner')) === null) ? null : (int)$v,
             // [G-02 fix / FE-12 fix] Ship the canonical board layout so the FE click
             // overlay (`hexpionage.js::_setupHexOverlay`) can render every hex without
-            // hard-coding coordinates. Source: assets/BOARD_LAYOUT.md + material.inc.php.
+            // hard-coding coordinates. Source: design/BOARD_LAYOUT.md + material.inc.php.
             'board_layout' => [
                 'field_hexes' => hexpionage_field_hex_list(),
                 'orange_hexes' => array_map(fn($h) => $h, ALL_ORANGE_HEXES),

@@ -1,0 +1,26 @@
+# Git LFS — design masters are large binaries (one PSD is 123 MB, over
+# GitHub's 100 MB hard limit). Everything under design/masters/ is a source
+# artifact for print production: big, binary, and rarely diffed.
+#
+# Requires `git lfs install` once per machine before cloning/pulling.
+*.psd  filter=lfs diff=lfs merge=lfs -text
+*.pdf  filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+*.ai   filter=lfs diff=lfs merge=lfs -text
+*.tif  filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+design/masters/**/*.png filter=lfs diff=lfs merge=lfs -text
+
+# Runtime game art stays in normal git — it is small and gets diffed/replaced
+# as part of normal development.
+src/img/** -filter -diff -merge
+
+# Keep line endings sane for source.
+*.php  text eol=lf
+*.js   text eol=lf
+*.css  text eol=lf
+*.sql  text eol=lf
+*.sh   text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.jsonc text eol=lf

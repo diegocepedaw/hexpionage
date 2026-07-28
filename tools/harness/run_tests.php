@@ -153,7 +153,7 @@ T::ok(array_sum($perType) === 12 && max($perType) === 2, 'each player has 2 of e
 
 echo "== 2b. board layout checks ==\n";
 require_once HarnessPaths::$src . '/material.inc.php';
-T::eq(30, count(ALL_FIELD_HEXES), 'Field hex count (assets/BOARD_LAYOUT.md)');
+T::eq(30, count(ALL_FIELD_HEXES), 'Field hex count (design/BOARD_LAYOUT.md)');
 T::eq(14, count(ALL_ORANGE_HEXES), 'orange intel-rain hex count');
 T::eq(9, count(ALL_SPAWN_ROW_HEXES), 'spawn row hex count');
 T::eq(47, array_sum(INTEL_TILE_COUNTS), 'intel tile total');

@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — GameEnd terminal state
- * per specs/STATE_MACHINE.md §2.9
+ * per docs/specs/STATE_MACHINE.md §2.9
  *
  * BGA reserves id 99 for the terminal state. We provide a class for
  * gameEnded notification emission; the framework handles the end-screen.

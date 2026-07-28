@@ -4,10 +4,10 @@
  * Source spec sections:
  *   - UI_SPEC §1 (layout), §1.4 (z-index), §2 (hex grid), §3 (per-state),
  *               §6 (animations), §7 (responsive), §8 (spectator), §9 (help)
- *   - assets/PIPELINE.md §3.5 (sprite class names — note: PIPELINE uses
+ *   - design/PIPELINE.md §3.5 (sprite class names — note: PIPELINE uses
  *     `.hex-agent--xxx` style; we re-emit the equivalents under the `hxp_`
  *     namespace below to comply with BGA_PRIMER §6 prefix discipline)
- *   - assets/MISSING.md §1-§5 (CSS-only widgets)
+ *   - design/MISSING.md §1-§5 (CSS-only widgets)
  *   - DECISIONS.md D-19 (intel color/value mapping)
  *
  * All custom classes prefixed `hxp_`. All z-index values < 900.

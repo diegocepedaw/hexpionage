@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — AnalystBonusDecision state [D-26]
- * per specs/STATE_MACHINE.md §2.7b + DECISIONS.md (D-18, D-20, D-26)
+ * per docs/specs/STATE_MACHINE.md §2.7b + DECISIONS.md (D-18, D-20, D-26)
  *
  * Two-step Analyst flow:
  *   onEnteringState — server draws bonus tile (or skips per [D-18]); fires

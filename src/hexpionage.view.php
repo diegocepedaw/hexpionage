@@ -10,7 +10,7 @@
  *   - UI_SPEC §3 (per-state UI)
  *   - UI_SPEC §3.7b (analyst bonus modal)
  *   - UI_SPEC §9 (help modal)
- *   - assets/MISSING.md §3-§5 (CSS-only widgets)
+ *   - design/MISSING.md §3-§5 (CSS-only widgets)
  *   - BGA_PRIMER §6 (CSS prefix `hxp_`, single CSS file)
  *
  * NOTE: this is the modern .view.php form. All custom IDs/classes use the

@@ -1,7 +1,7 @@
 <?php
 /**
  * Hexpionage — TrickleDrawRight state
- * per specs/STATE_MACHINE.md §2.3, §8.3 + DECISIONS.md (D-18)
+ * per docs/specs/STATE_MACHINE.md §2.3, §8.3 + DECISIONS.md (D-18)
  *
  * modern BGA: constructor-based GameState replaces legacy property form.
  */

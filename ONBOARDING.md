@@ -22,7 +22,7 @@ port of it to [Board Game Arena](https://boardgamearena.com) (BGA).
 
 A turn is: *trickle* (intel rains down the board) → *spawn* → *3 actions* → *cleanup*.
 
-The rules-of-record are `rulebook.md` (implementation-grade, ~82 KB). Do not infer
+The rules-of-record are `docs/rulebook.md` (implementation-grade, ~82 KB). Do not infer
 rules from the code; the code implements the rulebook.
 
 ---
@@ -40,8 +40,8 @@ rules from the code; the code implements the rulebook.
 
 The project was previously written against BGA's *legacy* framework, then migrated
 to the *modern* framework after a BGA Studio "dry run" (HAL) flagged the old layout.
-`HAL_DRY_RUN.md` is the record of that dry run and is still an accurate checklist of
-what the modern framework requires. `MORNING_BRIEFING.md` and `PLAN.md` are useful
+`docs/history/HAL_DRY_RUN.md` is the record of that dry run and is still an accurate checklist of
+what the modern framework requires. `docs/history/MORNING_BRIEFING.md` and `docs/history/PLAN.md` are useful
 history but describe the **pre-refactor** file layout (`hexpionage.game.php`,
 `hexpionage.js` at the root); those files no longer exist.
 
@@ -52,6 +52,7 @@ $ ./tools/check.sh
 == PHP syntax ==            all files parse
 == JS syntax ==             ok
 == server/client contract   consistent (26 notifications, 18 actions, 10 states)
+== cross-references         all 442 in-repo path references resolve
 == rules engine             63 assertions passed, 0 failed, 0 playout failures
 ALL CHECKS PASSED
 ```
@@ -60,56 +61,74 @@ ALL CHECKS PASSED
 
 ## 3. Repository map
 
+Top level, in the order you will care about it:
+
 ```
 hexpionage/
-├── ONBOARDING.md          ← you are here
-├── rulebook.md            Canonical rules spec. The source of truth for behaviour.
-├── DECISIONS.md           Owner adjudications D-01..D-26. Cited all over the code.
-├── PLAN.md                Original multi-agent build plan (historical).
-├── MORNING_BRIEFING.md    Build log from the implementation run (historical).
-├── HAL_DRY_RUN.md         BGA Studio static-checker output + modern-framework patterns.
+├── README.md              GitHub landing page — what this is, quick start.
+├── ONBOARDING.md          ← you are here. The full tour.
+├── AGENTS.md              Working agreements for AI agents (CLAUDE.md points here).
 │
-├── specs/                 Locked design docs — change these before changing code.
-│   ├── CONTRACT.md        getAllDatas payload + all 26 notifications. THE FE/BE contract.
-│   ├── STATE_MACHINE.md   10 states, transitions, per-state args, 18 actions.
-│   ├── STATE_MODEL.md     DB schema semantics + invariants.
-│   ├── UI_SPEC.md         Screen-by-screen client behaviour.
-│   ├── BGA_PRIMER.md      How BGA works, for people new to the platform.
-│   ├── BGA_PATTERNS.md    Idioms to copy.
-│   ├── BGA_CHECKLIST.md   Pre-submission gate.
-│   ├── QA_SPEC_REVIEW.md  Spec review findings.
-│   └── INTEGRATION_REPORT.md
+├── src/                   THE DEPLOYABLE GAME. Contents map 1:1 to the BGA Studio
+│                          project root (src/ itself is NOT uploaded). See below.
 │
-├── tests/                 Review + test artifacts (documents, not runnable code).
-│   ├── SCENARIOS.md       15 playtest scenarios + 40 illegal-action tests. Use these
-│   │                      as the manual script for Studio testing (Phase 4).
-│   ├── CODE_REVIEW_BACKEND.md / CODE_REVIEW_FRONTEND.md  (all S0/S1 resolved)
-│   └── I18N_SWEEP.md
-│
-├── assets/                Art pipeline + BGA metadata staging.
-│   ├── BOARD_LAYOUT.md    The 44-hex layout, derived from the printed board art.
-│   ├── MANIFEST.md        Inventory of print masters.
-│   ├── MISSING.md         Art that still needs authoring.
-│   ├── PIPELINE.md        Spec for turning print masters into sprite sheets.
-│   ├── build_placeholders.py   Generates the placeholder sprite sheets in src/img/.
-│   ├── upload_to_bga.py   SFTP upload of src/ to BGA Studio.
-│   └── legacy_metadata/   Superseded metadata files, kept for reference only.
-│
-├── agents/SOURCES.md      Where the print masters and reference docs live on disk.
-│
-├── tools/                 ← NEW: the offline test rig (see §5)
-│   ├── check.sh           Run everything.
-│   └── harness/
-│       ├── README.md
+├── tools/                 Offline test rig — runs the real src/ PHP with no Studio.
+│   ├── check.sh           Run everything. This is the command you will use most.
+│   └── harness/           See tools/harness/README.md for internals.
 │       ├── bga_stub.php       Minimal offline re-implementation of the BGA framework.
 │       ├── engine.php         Offline state-machine driver.
 │       ├── bot.php            Random-legal-move policy.
 │       ├── run_tests.php      Assertions + N simulated games.
 │       └── check_contract.php Static PHP↔JS contract cross-check.
 │
-└── src/                   ← THE DEPLOYABLE GAME. Contents map 1:1 to the BGA
-                             Studio project root (src/ itself is NOT uploaded).
+├── docs/                  Specs and rules. The source of truth for behaviour.
+│   ├── rulebook.md        Canonical rules spec (~82 KB). The code implements this.
+│   ├── DECISIONS.md       Owner adjudications D-01..D-26. Cited all over the code.
+│   ├── FAQ.md             The owner's rules FAQ.
+│   ├── SOURCES.md         Where every source artifact and reference doc lives.
+│   ├── specs/             Locked design docs — change these before changing code.
+│   │   ├── CONTRACT.md        getAllDatas payload + all 26 notifications.
+│   │   │                      THE server/client contract.
+│   │   ├── STATE_MACHINE.md   10 states, transitions, per-state args, 18 actions.
+│   │   ├── STATE_MODEL.md     DB schema semantics + invariants.
+│   │   ├── UI_SPEC.md         Screen-by-screen client behaviour.
+│   │   ├── BGA_PRIMER.md      How BGA works, for people new to the platform.
+│   │   ├── BGA_PATTERNS.md    Idioms to copy.
+│   │   ├── BGA_CHECKLIST.md   Pre-submission gate.
+│   │   └── QA_SPEC_REVIEW.md / INTEGRATION_REPORT.md   Review findings.
+│   ├── testing/           Test plans and review findings (documents, not code).
+│   │   ├── SCENARIOS.md       15 playtest scenarios + 40 illegal-action tests.
+│   │   │                      Your manual script for Studio testing (Phase 4).
+│   │   ├── CODE_REVIEW_BACKEND.md / CODE_REVIEW_FRONTEND.md  (all S0/S1 resolved)
+│   │   └── I18N_SWEEP.md
+│   └── history/           Records of how we got here. Paths inside are stale by
+│                          design; each file carries a banner saying so.
+│       ├── PLAN.md            Original multi-agent build plan.
+│       ├── MORNING_BRIEFING.md Phase 3 build log (pre-refactor layout).
+│       └── HAL_DRY_RUN.md     Studio dry-run output + modern-framework checklist.
+│
+├── design/                Art pipeline and physical-game masters.
+│   ├── README.md          Start here for anything art-related.
+│   ├── MANIFEST.md        Annotated inventory of every master.
+│   ├── PIPELINE.md        Turning masters into the sprite sheets in src/img/.
+│   ├── BOARD_LAYOUT.md    The 44-hex layout, derived from the printed board.
+│   ├── MISSING.md         Art that still needs authoring.
+│   ├── build_placeholders.py   Generates the placeholders in src/img/.
+│   ├── legacy_metadata/   Superseded BGA config. Reference only.
+│   └── masters/           PRINT MASTERS — Git LFS, 315 MB, read-only.
+│                          board/ box/ punchboard/ rulebook/ pre-production/
+│
+└── scripts/
+    ├── upload_to_bga.py   SFTP upload of src/ to BGA Studio.
+    └── check_links.py     Verifies every in-repo path reference resolves.
 ```
+
+Two conventions worth knowing before you read any code:
+
+- **Files cite their specs.** Almost every PHP and JS file opens with a header naming
+  the spec sections it implements (`per docs/specs/STATE_MACHINE.md §2.7`). Follow it.
+- **Decisions are cited inline** as `[D-21]`. Look them up in `docs/DECISIONS.md`
+  rather than guessing why a rule is the way it is.
 
 ### `src/` in detail
 
@@ -136,11 +155,15 @@ src/
         └── help_modal.js      Help/rules modal copy.
 ```
 
+> **Git LFS.** `design/masters/` is LFS-backed because one board PSD is 123 MB, over
+> GitHub's 100 MB per-file limit. Run `git lfs install` once per machine before
+> cloning or pulling, or you will get pointer text files instead of art.
+
 ---
 
 ## 4. How the game is wired (5-minute mental model)
 
-If you have never touched BGA, read `specs/BGA_PRIMER.md`. The short version:
+If you have never touched BGA, read `docs/specs/BGA_PRIMER.md`. The short version:
 
 **Server (PHP).** `Game.php` extends `\Bga\GameFramework\Table`. State classes in
 `modules/php/States/` each declare an `id`, a `type` (`GAME` = automatic,
@@ -163,7 +186,7 @@ shape. Three things matter:
 2. `onEnteringState(stateName, args)` — one `case` per server state name.
 3. `setupNotifications()` + `notif_<name>(n)` — one handler per server notification.
 
-**The contract between them** is `specs/CONTRACT.md`, and it is machine-checked by
+**The contract between them** is `docs/specs/CONTRACT.md`, and it is machine-checked by
 `tools/harness/check_contract.php`.
 
 > **The #1 BGA footgun**, and the bug class that was actually found here:
@@ -199,7 +222,7 @@ BGA framework and an in-memory SQLite database.
 
 ```bash
 brew install php          # one-time; needs PHP 8.1+ (8.5 verified)
-                          # node is only used for a JS syntax check
+                          # node and python3 are used for the JS and link checks
 
 ./tools/check.sh          # everything, ~15 s
 ./tools/check.sh 300      # everything with 300 simulated games, ~70 s
@@ -209,6 +232,7 @@ Individual pieces:
 
 ```bash
 php tools/harness/check_contract.php              # static PHP↔JS contract check
+python3 scripts/check_links.py                    # every in-repo path still resolves
 php tools/harness/run_tests.php --games=100       # simulate 100 games
 php tools/harness/run_tests.php --games=1 --verbose --seed=999
 ```
@@ -245,7 +269,7 @@ You need a BGA Studio account and the `hexpionage` project (it exists —
    BGA_SFTP_PORT=2022 \
    BGA_SFTP_USER=<you> \
    BGA_SFTP_PASSWORD=<secret> \
-   python3 assets/upload_to_bga.py --verify
+   python3 scripts/upload_to_bga.py --verify
    ```
    Add `--dry-run` first to see the file list without connecting. Credentials come
    only from the environment and are never written to disk.
@@ -254,10 +278,10 @@ You need a BGA Studio account and the `hexpionage` project (it exists —
    collide with ours. Delete them. Also make sure no `hexpionage.game.php` or
    `hexpionage.js` survives at the remote root from the pre-refactor era.
 3. **Dry run.** In Studio, "Manage games" → your project → **Dry run build**. Compare
-   against `HAL_DRY_RUN.md`; every item listed there is now fixed locally, so a clean
+   against `docs/history/HAL_DRY_RUN.md`; every item listed there is now fixed locally, so a clean
    report is the expectation.
 4. **Play.** "Express Start" a 2-player table (open the second seat in another
-   browser profile) and work through `tests/SCENARIOS.md`.
+   browser profile) and work through `docs/testing/SCENARIOS.md`.
 5. **Watch the logs.** Studio surfaces PHP errors in the table's error console; the
    offline harness catches most of them first, but framework-API mismatches can only
    surface here.
@@ -289,9 +313,18 @@ For context on the most recent pass (all changes are in `src/` and `tools/`):
 | **7 of 18 actions had mismatched JS→PHP parameter names** | `actTransferIntel`, `actDoubleAgentTransfer`, both Engineer blockade actions, both Comms actions and `actHackerStealIntel` would all have failed at runtime. `actCommsMoveIntelUp` wasn't sending `comms_id` at all. |
 | Added `description` / `descriptionMyTurn` to the 3 `ACTIVE_PLAYER` states | BGA requires them; without them the status bar is blank. |
 | Removed orphan `notif_actionsRemaining` | Handler for a notification the server never sends (per `CONTRACT.md` §2.23). |
-| Deleted `src/gameinfos.inc.php` | Duplicated `gameinfos.jsonc`, which modern BGA actually reads. Two copies drift. Moved to `assets/legacy_metadata/`. |
+| Deleted the duplicate `gameinfos.inc.php` | Duplicated `gameinfos.jsonc`, which modern BGA actually reads. Two copies drift. Moved to `design/legacy_metadata/`. |
 | Corrected the stale `material.inc.php` header | It claimed the board layout was a placeholder; G-01/G-02 were resolved long ago and the tables are canonical. |
 | Added `tools/` | The whole offline harness described in §5. |
+
+A second pass then made the repo fit for GitHub:
+
+| Change | Why |
+|---|---|
+| Imported `~/Downloads/final_printing/` into `design/masters/` | The print masters were the last thing living outside the project. The repo is now self-contained. Stored via Git LFS because one PSD is 123 MB. |
+| Restructured into `docs/`, `design/`, `scripts/`, `src/`, `tools/` | Nine loose markdown files at the root gave no signal about what mattered. Every reference in the codebase was rewritten to match. |
+| Added `scripts/check_links.py` to `check.sh` | The restructure could have silently rotted ~440 cross-references between code and specs. Now any broken in-repo path fails the build. |
+| Added `README.md`, `AGENTS.md`, `design/README.md`, `docs/README.md` | Landing page for humans, working agreements for AI agents, and indexes for the two densest directories. |
 
 ---
 
@@ -300,9 +333,9 @@ For context on the most recent pass (all changes are in `src/` and `tools/`):
 **Blocking a public release, not blocking a prototype:**
 
 1. **Art is placeholder.** `src/img/{agents,intel,tokens}.png` are generated mock
-   sprite sheets (`assets/build_placeholders.py`); `board.png` is a real downscale of
+   sprite sheets (`design/build_placeholders.py`); `board.png` is a real downscale of
    the printed board. Sprite cell geometry is locked, so replacing the PNGs in place
-   needs no code change — follow `assets/PIPELINE.md`.
+   needs no code change — follow `design/PIPELINE.md`.
    `dice_faces.svg` and `score_markers.svg` currently aren't referenced by any CSS or
    JS; decide whether to wire them up or delete them.
 2. **`TODO(I-02)` — intel distribution is a guess.** `material.inc.php::INTEL_TILE_COUNTS`
@@ -319,16 +352,21 @@ For context on the most recent pass (all changes are in `src/` and `tools/`):
    hundred simulated games; give them explicit manual coverage.
 7. **`undoSavepoint()`** is called through a `method_exists()` shim because the
    framework version wasn't confirmed. Verify on Studio and remove the shim.
-8. **~95 S2/S3 review items** in `tests/CODE_REVIEW_*.md` are open by choice. All S0
+8. **~95 S2/S3 review items** in `docs/testing/CODE_REVIEW_*.md` are open by choice. All S0
    and S1 items are resolved.
-9. **No remote.** The project is now a local git repo with a single baseline commit,
-   but there is no remote yet. Push it somewhere before anyone else touches it.
+9. **No remote.** The project is a local git repo with a clean history, but nothing
+   has been pushed yet. When you create the GitHub repo, make it **private** —
+   `design/masters/` holds unreleased print masters — and enable Git LFS (315 MB of
+   masters, within GitHub's 1 GB free LFS quota but worth watching).
+10. **`~/Downloads/final_printing/` is now a duplicate.** Its contents were copied,
+   not moved, so the originals are untouched. Delete them once you have pushed and
+   confirmed the LFS objects survived the round trip.
 
 ---
 
 ## 8. Working agreements
 
-- `rulebook.md` and `specs/` are the source of truth. If code and spec disagree, the
+- `rulebook.md` and `docs/specs/` are the source of truth. If code and spec disagree, the
   spec wins — or change the spec first, deliberately.
 - Decisions are numbered (`D-01`..`D-26`) in `DECISIONS.md` and cited in code
   comments. When you change behaviour that a decision covers, update the decision.
