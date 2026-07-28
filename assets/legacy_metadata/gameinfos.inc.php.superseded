@@ -1,0 +1,48 @@
+<?php
+/**
+ * Hexpionage — game metadata (legacy .inc.php form for BGA project-check).
+ *
+ * The canonical source is gameinfos.jsonc (modern BGA reads .jsonc); this file
+ * mirrors the same values for tooling that still expects the legacy filename.
+ * Keep both in sync.
+ */
+
+$gameinfos = [
+    'game_name' => 'Hexpionage',
+
+    'publisher' => '',
+    'publisher_website' => '',
+    'publisher_bgg_id' => 0,
+
+    'bgg_id' => 307967,
+
+    // Player count locked at 2 per [D-02]
+    'players' => [2],
+    'suggest_player_number' => 2,
+    'not_recommend_player_number' => null,
+
+    'estimated_duration' => 30,
+    'fast_additional_time' => 30,
+    'medium_additional_time' => 60,
+    'slow_additional_time' => 90,
+
+    // Per [D-03]: active player wins ties; rule recorded but practically impossible.
+    'tie_breaker_description' => 'Active player wins if both would cross 20 simultaneously',
+
+    'losers_not_ranked' => false,
+    'solo_mode_ranked' => false,
+    'is_coop' => 0,
+    'language_dependency' => false,
+
+    'player_colors' => ['ffffff', '000000'],
+    'favorite_colors_support' => true,
+    'disable_player_order_swap_on_rematch' => false,
+
+    'game_interface_width' => [
+        'min' => 740,
+        'max' => 1200,
+    ],
+
+    'db_undo_support' => true,
+    'game_version' => 1,
+];

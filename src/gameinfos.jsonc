@@ -1,0 +1,49 @@
+/*
+ * Hexpionage — game metadata (modern BGA JSONC format)
+ * per specs/BGA_CHECKLIST.md + DECISIONS.md (D-02, D-03, D-12b, D-13)
+ *
+ * HAL fix (modern framework):
+ *   - suggest_player_number is a single integer (not an array).
+ *   - complexity / strategy / diplomacy / luck removed — these now live
+ *     in the BGA Studio Game Metadata Manager web UI.
+ */
+{
+    "game_name": "Hexpionage",
+
+    "publisher": "",
+    "publisher_website": "",
+    "publisher_bgg_id": 0,
+
+    "bgg_id": 307967,
+
+    // Player count locked at 2 per [D-02]
+    "players": [2],
+    "suggest_player_number": 2,
+    "not_recommend_player_number": null,
+
+    "estimated_duration": 30,
+    "fast_additional_time": 30,
+    "medium_additional_time": 60,
+    "slow_additional_time": 90,
+
+    // Per [D-03]: active player wins ties; rule recorded but practically impossible
+    "tie_breaker_description": "Active player wins if both would cross 20 simultaneously",
+
+    "losers_not_ranked": false,
+    "solo_mode_ranked": false,
+    "is_coop": 0,
+    "language_dependency": false,
+
+    "player_colors": ["ffffff", "000000"],
+    "favorite_colors_support": true,
+    "disable_player_order_swap_on_rematch": false,
+
+    "game_interface_width": {
+        "min": 740,
+        "max": 1200
+    },
+
+    "db_undo_support": true,
+
+    "game_version": 1
+}

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  dice_faces.svg — 12 die faces (6 intel colors × 2 outcomes).
+
+  Source spec sections:
+    - UI_SPEC §3.4 (dice tray)
+    - assets/MISSING.md §2 (dice faces — generated SVG)
+    - DECISIONS.md D-19 (intel color/value mapping)
+
+  Encoded as a single 6×2 sprite SVG with one <symbol> per face for easy
+  reference via `<use href="#hxp_die_<intel>_<outcome>" />`. The CSS-only
+  fallback in hexpionage.css renders identical-looking dice procedurally;
+  this SVG is a richer raster source for high-DPI / print-friendly export.
+
+  Encoding:
+    - Each die: 64×64 rounded square, fill = intel color (D-19).
+    - odd  = 1 centered pip; even = 2 horizontally arranged pips.
+    - Pip color: white on dark fills (honeypot, industrial_tech,
+      leaked_email), dark on light fills.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="128" viewBox="0 0 384 128">
+  <defs>
+    <!-- Reusable die body (corner radius 8 per MISSING §2). -->
+    <rect id="hxp_die_body" x="0" y="0" width="64" height="64" rx="8" ry="8"/>
+
+    <!-- Pip presets. -->
+    <g id="hxp_die_pip_1">
+      <circle cx="32" cy="32" r="6"/>
+    </g>
+    <g id="hxp_die_pip_2">
+      <circle cx="22" cy="32" r="6"/>
+      <circle cx="42" cy="32" r="6"/>
+    </g>
+
+    <!-- Die symbols: row 0 = odd, row 1 = even.
+         Order matches INTEL_DIE_KEYS in hexpionage.js. -->
+
+    <!-- HONEYPOT (gray) — pip color white. -->
+    <symbol id="hxp_die_honeypot_odd"  viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#777777"/>
+      <use href="#hxp_die_pip_1" fill="#ffffff"/>
+    </symbol>
+    <symbol id="hxp_die_honeypot_even" viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#777777"/>
+      <use href="#hxp_die_pip_2" fill="#ffffff"/>
+    </symbol>
+
+    <!-- INDUSTRIAL TECH (brown) — pip color white. -->
+    <symbol id="hxp_die_industrial_tech_odd"  viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#8a5a3a"/>
+      <use href="#hxp_die_pip_1" fill="#ffffff"/>
+    </symbol>
+    <symbol id="hxp_die_industrial_tech_even" viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#8a5a3a"/>
+      <use href="#hxp_die_pip_2" fill="#ffffff"/>
+    </symbol>
+
+    <!-- LEAKED EMAIL (purple) — pip color white. -->
+    <symbol id="hxp_die_leaked_email_odd"  viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#8e5fb5"/>
+      <use href="#hxp_die_pip_1" fill="#ffffff"/>
+    </symbol>
+    <symbol id="hxp_die_leaked_email_even" viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#8e5fb5"/>
+      <use href="#hxp_die_pip_2" fill="#ffffff"/>
+    </symbol>
+
+    <!-- BLACKMAIL (green) — pip color dark. -->
+    <symbol id="hxp_die_blackmail_odd"  viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#4ea24e"/>
+      <use href="#hxp_die_pip_1" fill="#1a1a1a"/>
+    </symbol>
+    <symbol id="hxp_die_blackmail_even" viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#4ea24e"/>
+      <use href="#hxp_die_pip_2" fill="#1a1a1a"/>
+    </symbol>
+
+    <!-- SECURITY CREDENTIAL (yellow) — pip color dark. -->
+    <symbol id="hxp_die_security_credential_odd"  viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#d8b13a"/>
+      <use href="#hxp_die_pip_1" fill="#1a1a1a"/>
+    </symbol>
+    <symbol id="hxp_die_security_credential_even" viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#d8b13a"/>
+      <use href="#hxp_die_pip_2" fill="#1a1a1a"/>
+    </symbol>
+
+    <!-- STATE SECRET (cyan) — pip color dark. -->
+    <symbol id="hxp_die_state_secret_odd"  viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#4cd5ff"/>
+      <use href="#hxp_die_pip_1" fill="#1a1a1a"/>
+    </symbol>
+    <symbol id="hxp_die_state_secret_even" viewBox="0 0 64 64">
+      <use href="#hxp_die_body" fill="#4cd5ff"/>
+      <use href="#hxp_die_pip_2" fill="#1a1a1a"/>
+    </symbol>
+  </defs>
+
+  <!-- Sprite-sheet layout (6 columns × 2 rows; cell 64×64).
+       Row 0 = odd faces, Row 1 = even faces.
+       Column order matches INTEL_DIE_KEYS:
+       honeypot, industrial_tech, leaked_email, blackmail,
+       security_credential, state_secret. -->
+  <use href="#hxp_die_honeypot_odd"             x="0"   y="0"  width="64" height="64"/>
+  <use href="#hxp_die_industrial_tech_odd"      x="64"  y="0"  width="64" height="64"/>
+  <use href="#hxp_die_leaked_email_odd"         x="128" y="0"  width="64" height="64"/>
+  <use href="#hxp_die_blackmail_odd"            x="192" y="0"  width="64" height="64"/>
+  <use href="#hxp_die_security_credential_odd"  x="256" y="0"  width="64" height="64"/>
+  <use href="#hxp_die_state_secret_odd"         x="320" y="0"  width="64" height="64"/>
+
+  <use href="#hxp_die_honeypot_even"            x="0"   y="64" width="64" height="64"/>
+  <use href="#hxp_die_industrial_tech_even"     x="64"  y="64" width="64" height="64"/>
+  <use href="#hxp_die_leaked_email_even"        x="128" y="64" width="64" height="64"/>
+  <use href="#hxp_die_blackmail_even"           x="192" y="64" width="64" height="64"/>
+  <use href="#hxp_die_security_credential_even" x="256" y="64" width="64" height="64"/>
+  <use href="#hxp_die_state_secret_even"        x="320" y="64" width="64" height="64"/>
+</svg>

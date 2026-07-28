@@ -1,0 +1,997 @@
+/*
+ * hexpionage.css — single CSS file (BGA_PRIMER §6)
+ *
+ * Source spec sections:
+ *   - UI_SPEC §1 (layout), §1.4 (z-index), §2 (hex grid), §3 (per-state),
+ *               §6 (animations), §7 (responsive), §8 (spectator), §9 (help)
+ *   - assets/PIPELINE.md §3.5 (sprite class names — note: PIPELINE uses
+ *     `.hex-agent--xxx` style; we re-emit the equivalents under the `hxp_`
+ *     namespace below to comply with BGA_PRIMER §6 prefix discipline)
+ *   - assets/MISSING.md §1-§5 (CSS-only widgets)
+ *   - DECISIONS.md D-19 (intel color/value mapping)
+ *
+ * All custom classes prefixed `hxp_`. All z-index values < 900.
+ */
+
+/* ============================================================
+ * CSS VARIABLES — calibrated by hex_layout.js per UI_SPEC §2.3
+ * ============================================================ */
+.hxp_root {
+  --hxp-board-w: 1200px;
+  --hxp-board-h: 608px;
+  --hxp-scale: 1;
+
+  /* Hex pixel transform (overridden after [TODO G-02] calibration). */
+  --hxp-hex-radius: 36px;     /* circumradius R per UI_SPEC §2.3 */
+  --hxp-hex-w: 62.35px;       /* sqrt(3) * R */
+  --hxp-hex-h: 72px;          /* 2 * R */
+  --hxp-origin-x: 600px;      /* board pixel center for axial (0,0) */
+  --hxp-origin-y: 304px;
+
+  /* Z-index ladder (UI_SPEC §1.4) — all < 900. */
+  --hxp-z-board:        10;
+  --hxp-z-overlay:      20;
+  --hxp-z-blockade:     30;
+  --hxp-z-intel:        40;
+  --hxp-z-agent:        50;
+  --hxp-z-pin:          60;
+  --hxp-z-intel-badge:  70;
+  --hxp-z-score-marker: 80;
+  --hxp-z-dice:        100;
+  --hxp-z-panel:       200;
+  --hxp-z-action-bar:  300;
+  --hxp-z-tooltip:     800;
+  --hxp-z-modal:       850;
+
+  /* Player tints (mapped post-setup in JS). */
+  --hxp-color-p1: #f5f5f5;       /* white player */
+  --hxp-color-p1-stroke: #1a1a1a;
+  --hxp-color-p2: #1a1a1a;       /* black player */
+  --hxp-color-p2-stroke: #f5f5f5;
+
+  /* UI accents. */
+  --hxp-accent-gold: #f0c200;
+  --hxp-accent-cyan: #4cd5ff;
+  --hxp-accent-red:  #d04040;
+
+  /* Intel tile tints (D-19 — mirrored on dice and tile borders). */
+  --hxp-intel-honeypot:           #777;
+  --hxp-intel-industrial_tech:    #8a5a3a;
+  --hxp-intel-leaked_email:       #8e5fb5;
+  --hxp-intel-blackmail:          #4ea24e;
+  --hxp-intel-security_credential: #d8b13a;
+  --hxp-intel-state_secret:       #4cd5ff;
+
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ============================================================
+ * ROOT LAYOUT (UI_SPEC §1.1 desktop)
+ * ============================================================ */
+.hxp_root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.hxp_topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+}
+
+.hxp_phase_breadcrumb {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 8px;
+}
+
+.hxp_phase_step {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  opacity: 0.55;
+  position: relative;
+}
+
+.hxp_phase_step + .hxp_phase_step::before {
+  content: "\203A";
+  position: absolute;
+  left: -8px;
+  top: 4px;
+  opacity: 0.4;
+}
+
+.hxp_phase_step.is-current {
+  opacity: 1;
+  font-weight: 600;
+  border-bottom: 2px solid var(--hxp-accent-gold);
+}
+
+.hxp_phase_substate {
+  font-style: italic;
+  font-size: 12px;
+  opacity: 0.7;
+  flex: 1;
+  text-align: center;
+}
+
+.hxp_turn_indicator {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.hxp_turn_counter {
+  display: inline-block;
+  min-width: 24px;
+  padding: 2px 8px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  margin-left: 4px;
+}
+
+/* ------- main row ------------------------------------------ */
+.hxp_main {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  gap: 12px;
+  align-items: start;
+}
+
+/* ============================================================
+ * PLAYER PANELS (UI_SPEC §1.1)
+ * ============================================================ */
+.hxp_player_panel {
+  z-index: var(--hxp-z-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  font-size: 13px;
+}
+
+.hxp_player_panel.is-active {
+  border-color: var(--hxp-accent-gold);
+  box-shadow: 0 0 12px rgba(240, 194, 0, 0.45);
+}
+
+.hxp_panel_header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.hxp_panel_chevron {
+  display: inline-block;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  color: var(--hxp-accent-gold);
+}
+
+.hxp_player_panel.is-active .hxp_panel_chevron {
+  opacity: 1;
+}
+
+.hxp_panel_score,
+.hxp_panel_reserve,
+.hxp_panel_blockades,
+.hxp_panel_actions,
+.hxp_panel_onboard {
+  padding: 4px 0;
+}
+
+.hxp_score_value {
+  font-weight: 700;
+  font-size: 18px;
+  margin-left: 6px;
+}
+
+.hxp_reserve_grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.hxp_reserve_cell {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  position: relative;
+}
+
+.hxp_reserve_cell.is-spent {
+  filter: grayscale(1) opacity(0.35);
+  cursor: default;
+}
+
+.hxp_reserve_cell.is-armed {
+  outline: 2px solid var(--hxp-accent-gold);
+}
+
+.hxp_blockade_pip_row {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+}
+
+.hxp_blockade_pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.hxp_blockade_pip.is-active {
+  background: var(--hxp-accent-cyan);
+}
+
+.hxp_panel_onboard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hxp_onboard_row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.hxp_onboard_intel_dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.hxp_onboard_intel_dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ============================================================
+ * BOARD (UI_SPEC §1.1, §2)
+ * ============================================================ */
+.hxp_board_container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.hxp_board_wrap {
+  position: relative;
+  width: var(--hxp-board-w);
+  height: var(--hxp-board-h);
+  z-index: var(--hxp-z-board);
+}
+
+.hxp_board_img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.hxp_hex_overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--hxp-z-overlay);
+  pointer-events: none; /* per-cell overrides below */
+}
+
+.hxp_hex {
+  position: absolute;
+  width: var(--hxp-hex-w);
+  height: var(--hxp-hex-h);
+  margin-left: calc(var(--hxp-hex-w) / -2);
+  margin-top: calc(var(--hxp-hex-h) / -2);
+  /* clip-path renders the hexagonal hover/selection feedback. */
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: box-shadow 150ms ease;
+}
+
+.hxp_hex:hover {
+  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.hxp_hex.is-legal {
+  box-shadow: inset 0 0 10px var(--hxp-accent-cyan);
+}
+
+.hxp_hex.is-armed-source {
+  box-shadow: inset 0 0 12px var(--hxp-accent-gold);
+}
+
+.hxp_hex.is-target-preview {
+  box-shadow: inset 0 0 14px var(--hxp-accent-cyan), 0 0 6px var(--hxp-accent-cyan);
+}
+
+/* Spectators / inactive get no .is-legal styling. */
+.hxp_root.is-spectator .hxp_hex.is-legal,
+.hxp_root.is-spectator .hxp_hex.is-armed-source {
+  box-shadow: none;
+}
+
+/* ------- visual layers ------------------------------------- */
+.hxp_blockade_layer { z-index: var(--hxp-z-blockade); }
+.hxp_intel_layer    { z-index: var(--hxp-z-intel); }
+.hxp_agent_layer    { z-index: var(--hxp-z-agent); }
+.hxp_pin_layer      { z-index: var(--hxp-z-pin); }
+
+.hxp_blockade_layer,
+.hxp_intel_layer,
+.hxp_agent_layer,
+.hxp_pin_layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ============================================================
+ * SPRITE-SHEET CLASSES (mirrors PIPELINE §3.5 under hxp_ prefix)
+ * ============================================================ */
+.hxp_agent {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  background-image: url("img/agents.png");
+  background-repeat: no-repeat;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 200ms ease, filter 200ms ease;
+}
+
+.hxp_agent.is-pinned-target { /* candidate when picking pin source/target */ }
+
+.hxp_agent.hxp_agent_white { /* col 0 */ }
+.hxp_agent.hxp_agent_black { /* col 1 */ }
+
+.hxp_agent.hxp_agent_comms_specialist.hxp_agent_white { background-position:    0px    0px; }
+.hxp_agent.hxp_agent_comms_specialist.hxp_agent_black { background-position:  -80px    0px; }
+.hxp_agent.hxp_agent_analyst.hxp_agent_white          { background-position:    0px  -80px; }
+.hxp_agent.hxp_agent_analyst.hxp_agent_black          { background-position:  -80px  -80px; }
+.hxp_agent.hxp_agent_smuggler.hxp_agent_white         { background-position:    0px -160px; }
+.hxp_agent.hxp_agent_smuggler.hxp_agent_black         { background-position:  -80px -160px; }
+.hxp_agent.hxp_agent_engineer.hxp_agent_white         { background-position:    0px -240px; }
+.hxp_agent.hxp_agent_engineer.hxp_agent_black         { background-position:  -80px -240px; }
+.hxp_agent.hxp_agent_hacker.hxp_agent_white           { background-position:    0px -320px; }
+.hxp_agent.hxp_agent_hacker.hxp_agent_black           { background-position:  -80px -320px; }
+.hxp_agent.hxp_agent_double_agent.hxp_agent_white     { background-position:    0px -400px; }
+.hxp_agent.hxp_agent_double_agent.hxp_agent_black     { background-position:  -80px -400px; }
+
+.hxp_intel {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  background-image: url("img/intel.png");
+  background-repeat: no-repeat;
+  pointer-events: auto;
+}
+
+.hxp_intel.hxp_intel_honeypot.hxp_intel_face            { background-position:    0px    0px; }
+.hxp_intel.hxp_intel_honeypot.hxp_intel_back            { background-position:  -80px    0px; }
+.hxp_intel.hxp_intel_industrial_tech.hxp_intel_face     { background-position:    0px  -80px; }
+.hxp_intel.hxp_intel_industrial_tech.hxp_intel_back     { background-position:  -80px  -80px; }
+.hxp_intel.hxp_intel_leaked_email.hxp_intel_face        { background-position:    0px -160px; }
+.hxp_intel.hxp_intel_leaked_email.hxp_intel_back        { background-position:  -80px -160px; }
+.hxp_intel.hxp_intel_blackmail.hxp_intel_face           { background-position:    0px -240px; }
+.hxp_intel.hxp_intel_blackmail.hxp_intel_back           { background-position:  -80px -240px; }
+.hxp_intel.hxp_intel_security_credential.hxp_intel_face { background-position:    0px -320px; }
+.hxp_intel.hxp_intel_security_credential.hxp_intel_back { background-position:  -80px -320px; }
+.hxp_intel.hxp_intel_state_secret.hxp_intel_face        { background-position:    0px -400px; }
+.hxp_intel.hxp_intel_state_secret.hxp_intel_back        { background-position:  -80px -400px; }
+
+.hxp_token {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  margin-top: -20px;
+  background-image: url("img/tokens.png");
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.hxp_token.hxp_token_blockade.hxp_token_white { background-position:    0px    0px; }
+.hxp_token.hxp_token_blockade.hxp_token_black { background-position:  -40px    0px; }
+.hxp_token.hxp_token_pin.hxp_token_white      { background-position:    0px  -40px; }
+.hxp_token.hxp_token_pin.hxp_token_black      { background-position:  -40px  -40px; }
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .hxp_agent { background-image: url("img/agents@2x.png"); background-size: 160px 480px; }
+  .hxp_intel { background-image: url("img/intel@2x.png"); background-size: 160px 480px; }
+  .hxp_token { background-image: url("img/tokens@2x.png"); background-size: 80px 80px; }
+}
+
+/* ------- agent state modifiers ----------------------------- */
+.hxp_agent.is-armed-source { filter: drop-shadow(0 0 6px var(--hxp-accent-gold)); }
+.hxp_agent.is-legal        { filter: drop-shadow(0 0 4px var(--hxp-accent-cyan)); }
+.hxp_agent.is-pinned       { /* pin marker overlay rendered on hxp_pin_layer */ }
+.hxp_agent.is-just-spawned { opacity: 0.85; }
+
+/* ------- held intel badges (small dots near agent) --------- */
+.hxp_intel_badge {
+  position: absolute;
+  z-index: var(--hxp-z-intel-badge);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.hxp_intel_badge.hxp_intel_honeypot           { background: var(--hxp-intel-honeypot); }
+.hxp_intel_badge.hxp_intel_industrial_tech    { background: var(--hxp-intel-industrial_tech); }
+.hxp_intel_badge.hxp_intel_leaked_email       { background: var(--hxp-intel-leaked_email); }
+.hxp_intel_badge.hxp_intel_blackmail          { background: var(--hxp-intel-blackmail); }
+.hxp_intel_badge.hxp_intel_security_credential{ background: var(--hxp-intel-security_credential); }
+.hxp_intel_badge.hxp_intel_state_secret       { background: var(--hxp-intel-state_secret); }
+
+/* ============================================================
+ * SCORE MARKERS (MISSING §1; CSS-only fallback)
+ * ============================================================ */
+.hxp_score_marker {
+  position: absolute;
+  z-index: var(--hxp-z-score-marker);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-left: -14px;
+  margin-top: -14px;
+  pointer-events: none;
+  transition: transform 300ms ease;
+}
+
+.hxp_score_marker_white {
+  background: var(--hxp-color-p1);
+  border: 2px solid var(--hxp-color-p1-stroke);
+}
+
+.hxp_score_marker_black {
+  background: var(--hxp-color-p2);
+  border: 2px solid var(--hxp-color-p2-stroke);
+}
+
+/* ============================================================
+ * DICE TRAY (UI_SPEC §3.4, MISSING §2)
+ * ============================================================ */
+.hxp_dice_display {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: var(--hxp-z-dice);
+}
+
+.hxp_dice_tray {
+  display: flex;
+  gap: 6px;
+}
+
+.hxp_die {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 600;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  transition: transform 600ms ease;
+}
+
+.hxp_die.is-rolling {
+  transform: rotate(360deg) scale(1.1);
+}
+
+.hxp_die_honeypot           { background: var(--hxp-intel-honeypot); color: #fff; }
+.hxp_die_industrial_tech    { background: var(--hxp-intel-industrial_tech); color: #fff; }
+.hxp_die_leaked_email       { background: var(--hxp-intel-leaked_email); color: #fff; }
+.hxp_die_blackmail          { background: var(--hxp-intel-blackmail); }
+.hxp_die_security_credential{ background: var(--hxp-intel-security_credential); }
+.hxp_die_state_secret       { background: var(--hxp-intel-state_secret); }
+
+.hxp_die_pips {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.hxp_die_pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.hxp_die_arrow {
+  position: absolute;
+  bottom: -16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--hxp-accent-gold);
+}
+
+.hxp_bag_widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 14px;
+}
+
+.hxp_bag_icon {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  background: linear-gradient(180deg, #6a4f2a, #3c2c14);
+  border-radius: 4px 4px 8px 8px;
+  border: 1px solid #2a1d0a;
+}
+
+/* ============================================================
+ * ACTION BAR (UI_SPEC §1.1, §3.7.1, MISSING §3)
+ * ============================================================ */
+.hxp_action_bar {
+  z-index: var(--hxp-z-action-bar);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  position: sticky;
+  bottom: 0;
+}
+
+.hxp_action_counter {
+  font-weight: 700;
+  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: box-shadow 200ms ease, color 150ms ease;
+}
+
+.hxp_action_counter.is-zero { color: var(--hxp-accent-red); }
+.hxp_action_counter.is-boosted {
+  box-shadow: 0 0 6px var(--hxp-accent-gold);
+  color: var(--hxp-accent-gold);
+}
+
+.hxp_action_buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.hxp_action_help_line {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+  flex-basis: 100%;
+}
+
+.hxp_btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: background 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+.hxp_btn:hover { background: rgba(255, 255, 255, 0.12); }
+.hxp_btn:disabled,
+.hxp_btn.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hxp_btn.is-armed {
+  border-color: var(--hxp-accent-gold);
+  box-shadow: 0 0 6px var(--hxp-accent-gold);
+}
+
+.hxp_btn_primary {
+  background: var(--hxp-accent-gold);
+  color: #1a1a1a;
+  border-color: transparent;
+}
+
+.hxp_btn_primary:hover { background: #ffd84a; }
+
+.hxp_btn_secondary { background: rgba(255, 255, 255, 0.1); }
+.hxp_btn_ghost { background: transparent; }
+
+.hxp_btn_dropdown {
+  position: relative;
+}
+
+.hxp_btn_dropdown_menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(20, 20, 20, 0.95);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  min-width: 180px;
+}
+
+.hxp_btn_dropdown.is-open .hxp_btn_dropdown_menu { display: flex; }
+
+.hxp_btn_dropdown_menu .hxp_btn { text-align: left; }
+
+/* ============================================================
+ * STATUS BAR (UI_SPEC §3 banner messages)
+ * ============================================================ */
+.hxp_status_bar {
+  min-height: 24px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.hxp_status_bar.is-warning { color: var(--hxp-accent-red); }
+.hxp_status_bar.is-info    { color: var(--hxp-accent-cyan); }
+
+.hxp_log_area {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* ============================================================
+ * MODALS (UI_SPEC §3.7b, §4, §9, §10)
+ * ============================================================ */
+.hxp_modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--hxp-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hxp_modal[hidden] { display: none; }
+
+.hxp_modal_backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.hxp_modal_box {
+  position: relative;
+  z-index: 1;
+  background: #1f2530;
+  color: #f5f5f5;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  min-width: 320px;
+  max-width: 560px;
+  padding: 18px 22px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  animation: hxp_modal_fade_in 150ms ease both;
+}
+
+@keyframes hxp_modal_fade_in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hxp_modal_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.hxp_modal_title {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hxp_modal_body {
+  margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hxp_modal_buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.hxp_modal_analyst_tile {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background-size: 80px 80px;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 3px solid var(--hxp-accent-gold);
+}
+
+.hxp_modal_analyst_name {
+  text-align: center;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.hxp_modal_analyst_value {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+/* Tabs in help modal. */
+.hxp_help_tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hxp_help_tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+}
+
+.hxp_help_tab.is-active {
+  border-bottom-color: var(--hxp-accent-gold);
+  font-weight: 600;
+}
+
+.hxp_help_content { font-size: 13px; line-height: 1.6; }
+.hxp_help_content h4 { margin: 12px 0 4px; font-size: 14px; }
+
+/* ============================================================
+ * PIN MARKER OVERLAY (UI_SPEC §6, MANIFEST §D)
+ * ============================================================ */
+.hxp_pin_marker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;        /* sits at top-right of agent */
+  margin-top: -28px;
+  pointer-events: none;
+  z-index: var(--hxp-z-pin);
+}
+
+.hxp_pin_marker.hxp_token_pin.hxp_token_white,
+.hxp_pin_marker.hxp_token_pin.hxp_token_black {
+  background-size: 24px 24px;
+  background-image: url("img/tokens.png");
+  background-position: 0 -40px; /* row 1 (pin), col 0 white */
+}
+
+/* ============================================================
+ * BLOCKADE TOKEN OVERLAY
+ * ============================================================ */
+.hxp_blockade {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  margin-top: -20px;
+  pointer-events: none;
+  background-image: url("img/tokens.png");
+}
+
+.hxp_blockade.hxp_token_white { background-position: 0 0; }
+.hxp_blockade.hxp_token_black { background-position: -40px 0; }
+
+/* ============================================================
+ * TUTORIAL OVERLAY (UI_SPEC §5.3 first-contact popup)
+ * ============================================================ */
+.hxp_tutorial_overlay {
+  position: absolute;
+  background: rgba(20, 25, 35, 0.95);
+  color: #f5f5f5;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--hxp-accent-gold);
+  max-width: 240px;
+  z-index: var(--hxp-z-tooltip);
+}
+
+/* ============================================================
+ * SUB-PHONE BANNER (UI_SPEC §1.3)
+ * ============================================================ */
+.hxp_subphone_banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--hxp-z-modal);
+  padding: 16px;
+  text-align: center;
+  background: var(--hxp-accent-red);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ============================================================
+ * ANIMATION KEYFRAMES (UI_SPEC §6)
+ * ============================================================ */
+@keyframes hxp_pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+@keyframes hxp_pulse_gold {
+  0%   { box-shadow: 0 0 0 rgba(240, 194, 0, 0); }
+  40%  { box-shadow: 0 0 12px rgba(240, 194, 0, 0.85); }
+  100% { box-shadow: 0 0 0 rgba(240, 194, 0, 0); }
+}
+
+@keyframes hxp_flash {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@keyframes hxp_fade_in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes hxp_fade_out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes hxp_die_tumble {
+  0%   { transform: rotate(0deg)   scale(1); }
+  50%  { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.hxp_anim_pop      { animation: hxp_pop 150ms ease both; }
+.hxp_anim_pulse    { animation: hxp_pulse_gold 200ms ease both; }
+.hxp_anim_flash    { animation: hxp_flash 50ms ease both; }
+.hxp_anim_fade_in  { animation: hxp_fade_in 200ms ease both; }
+.hxp_anim_fade_out { animation: hxp_fade_out 200ms ease both; }
+.hxp_anim_die      { animation: hxp_die_tumble 600ms ease both; }
+
+/* trickle slide stagger via per-tile inline `--hxp-stagger` (UI_SPEC §6.2). */
+.hxp_anim_trickle {
+  transition: transform 250ms ease;
+  transition-delay: var(--hxp-stagger, 0ms);
+}
+
+/* ============================================================
+ * REDUCED MOTION FALLBACK (UI_SPEC §6.4)
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .hxp_agent,
+  .hxp_intel,
+  .hxp_score_marker,
+  .hxp_anim_pop,
+  .hxp_anim_pulse,
+  .hxp_anim_fade_in,
+  .hxp_anim_fade_out,
+  .hxp_anim_die,
+  .hxp_anim_trickle,
+  .hxp_die,
+  .hxp_modal_box {
+    animation-duration: 50ms !important;
+    transition-duration: 50ms !important;
+  }
+}
+
+/* ============================================================
+ * DARK MODE OVERRIDES (BGA_PRIMER §6 — `[data-theme="dark"]` on html)
+ * ============================================================ */
+[data-theme="dark"] .hxp_root {
+  --hxp-color-p1: #d8d8d8;
+  --hxp-color-p2: #303030;
+}
+
+[data-theme="dark"] .hxp_topbar           { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .hxp_player_panel     { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .hxp_action_bar       { background: rgba(0, 0, 0, 0.55); }
+[data-theme="dark"] .hxp_btn              { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .hxp_modal_box        { background: #161a22; }
+
+/* ============================================================
+ * SPECTATOR MODE (UI_SPEC §8)
+ * ============================================================ */
+.spectatorMode .hxp_action_bar { display: none; }
+.spectatorMode .hxp_panel_actions { display: none; }
+
+/* ============================================================
+ * RESPONSIVE BREAKPOINTS (UI_SPEC §7)
+ * ============================================================ */
+
+/* Tablet: 768–1279 px */
+@media (max-width: 1279px) {
+  .hxp_root { --hxp-board-w: 800px; --hxp-board-h: 405px; --hxp-scale: 0.667; }
+  .hxp_main {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  #hxp_board_container { grid-column: 1 / span 2; }
+  .hxp_board_wrap { transform: scale(var(--hxp-scale)); transform-origin: top center; }
+  .hxp_player_panel { font-size: 12px; }
+}
+
+/* Phone: 480–767 px */
+@media (max-width: 767px) {
+  .hxp_main {
+    grid-template-columns: 1fr;
+  }
+  #hxp_board_container { grid-column: 1; }
+  .hxp_player_panel { width: 100%; }
+  .hxp_action_bar { flex-direction: column; align-items: stretch; }
+  .hxp_dice_tray { overflow-x: auto; flex-wrap: nowrap; }
+  .hxp_action_buttons .hxp_btn_dropdown_menu { position: static; display: flex; }
+}
+
+/* Sub-phone: <480 px — UI_SPEC §1.3 warning banner only */
+@media (max-width: 479px) {
+  .hxp_main, .hxp_action_bar, .hxp_topbar { display: none; }
+  .hxp_subphone_banner { display: block !important; }
+}

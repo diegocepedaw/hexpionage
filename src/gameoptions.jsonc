@@ -1,0 +1,7 @@
+/*
+ * Hexpionage — table options
+ * Per [D-13]: no custom variants in initial release. Rely solely on BGA-provided
+ * table options (turn timer, ELO/training, etc.).
+ */
+{
+}
