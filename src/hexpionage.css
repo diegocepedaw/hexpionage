@@ -433,9 +433,9 @@
 .hxp_token.hxp_token_pin.hxp_token_black      { background-position:  -40px  -40px; }
 
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .hxp_agent { background-image: url("img/agents@2x.png"); background-size: 160px 480px; }
-  .hxp_intel { background-image: url("img/intel@2x.png"); background-size: 160px 480px; }
-  .hxp_token { background-image: url("img/tokens@2x.png"); background-size: 80px 80px; }
+  .hxp_agent { background-image: url("img/agents_2x.png"); background-size: 160px 480px; }
+  .hxp_intel { background-image: url("img/intel_2x.png"); background-size: 160px 480px; }
+  .hxp_token { background-image: url("img/tokens_2x.png"); background-size: 80px 80px; }
 }
 
 /* ------- agent state modifiers ----------------------------- */

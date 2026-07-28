@@ -15,7 +15,7 @@
  *
  * Modern BGA refactor (HAL-driven):
  *   - File path: src/hexpionage.game.php → src/modules/php/Game.php.
- *   - declare(strict_types=1); + namespace Bga\Games\Hexpionage.
+ *   - declare(strict_types=1); + namespace Bga\Games\hexpionage.
  *   - Class renamed: hexpionage → Game; extends \Bga\GameFramework\Table.
  *   - PossibleAction attribute moved to Bga\GameFramework\States\PossibleAction.
  *   - User-exception strings migrated to the modern translation marker. // NOI18N
@@ -26,7 +26,7 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\Hexpionage;
+namespace Bga\Games\hexpionage;
 
 // modern BGA: under the namespaced layout, autoload from BGA loads the framework
 // classes; material.inc.php sits at project root and defines un-namespaced
@@ -42,16 +42,16 @@ use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\PossibleAction;
 
 // State class references for setupNewGame() return + #[PossibleAction] return-types.
-use Bga\Games\Hexpionage\States\Actions;
-use Bga\Games\Hexpionage\States\AnalystBonusDecision;
-use Bga\Games\Hexpionage\States\EndOfTurnCleanup;
-use Bga\Games\Hexpionage\States\GameEnd;
-use Bga\Games\Hexpionage\States\GameSetup;
-use Bga\Games\Hexpionage\States\Spawn;
-use Bga\Games\Hexpionage\States\TrickleDrawLeft;
-use Bga\Games\Hexpionage\States\TrickleDrawRight;
-use Bga\Games\Hexpionage\States\TrickleResolve;
-use Bga\Games\Hexpionage\States\TrickleRoll;
+use Bga\Games\hexpionage\States\Actions;
+use Bga\Games\hexpionage\States\AnalystBonusDecision;
+use Bga\Games\hexpionage\States\EndOfTurnCleanup;
+use Bga\Games\hexpionage\States\GameEnd;
+use Bga\Games\hexpionage\States\GameSetup;
+use Bga\Games\hexpionage\States\Spawn;
+use Bga\Games\hexpionage\States\TrickleDrawLeft;
+use Bga\Games\hexpionage\States\TrickleDrawRight;
+use Bga\Games\hexpionage\States\TrickleResolve;
+use Bga\Games\hexpionage\States\TrickleRoll;
 
 // Un-namespaced framework exceptions (BGA still exposes them at the root namespace).
 use BgaUserException;

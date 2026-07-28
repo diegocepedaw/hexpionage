@@ -235,6 +235,66 @@ if (($gi['exception_on_warning'] ?? false) !== true) {
     echo "   exception_on_warning is not true\n";
 }
 
+// ---- PHP namespace case ---------------------------------------------------
+// BGA builds the expected namespace from the project name verbatim -- lowercase
+// "hexpionage" -- and compares it as a STRING. PHP itself resolves namespaces
+// case-insensitively, so `Bga\Games\Hexpionage` loads fine locally and in the
+// harness, but Studio rejects it with "should be of namespace
+// Bga\Games\hexpionage\States (no namespace found)" and the table dies at
+// loadStateMachine(). Observed 2026-07-29 on table T934722.
+echo "php namespace case\n";
+$nsRoot = 'Bga\\Games\\hexpionage';
+$nsChecked = 0;
+foreach (array_merge([$src . '/modules/php/Game.php'], glob($src . '/modules/php/States/*.php')) as $phpFile) {
+    $body = file_get_contents($phpFile);
+    if (!preg_match('/^namespace\s+([^;]+);/m', $body, $m)) {
+        $problems[] = basename($phpFile) . ' declares no namespace';
+        echo '   ' . basename($phpFile) . " has no namespace\n";
+        continue;
+    }
+    $nsChecked++;
+    $declared = trim($m[1]);
+    if (strpos($declared, $nsRoot) !== 0) {
+        $problems[] = basename($phpFile) . " namespace '$declared' must start with '$nsRoot' (exact case)";
+        echo '   ' . basename($phpFile) . ": '$declared' != '$nsRoot' (case-sensitive)\n";
+    }
+}
+// Guard against a vacuous pass if the glob ever stops matching.
+if ($nsChecked < 11) {
+    $problems[] = "namespace check only inspected $nsChecked files, expected 11";
+    echo "   only $nsChecked namespaced files found\n";
+} else {
+    echo "   $nsChecked files use $nsRoot\n";
+}
+
+// ---- SVN-safe filenames ---------------------------------------------------
+// BGA commits the project to Subversion, which parses "@" as the peg-revision
+// separator. A file named img/agents@2x.png aborts the whole commit with
+// "svn: E200009: a peg revision is not allowed here", so it can never ship.
+// Observed 2026-07-29 on the first "commit and build new version".
+echo "svn-safe filenames\n";
+$badNames = [];
+$rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS));
+$nameCount = 0;
+foreach ($rii as $entry) {
+    $nameCount++;
+    $base = $entry->getFilename();
+    if (preg_match('/[@\s]/', $base)) {
+        $badNames[] = $base;
+    }
+}
+if ($nameCount === 0) {
+    $problems[] = 'svn-safe filename check scanned 0 files';
+    echo "   scanned 0 files\n";
+} elseif ($badNames) {
+    foreach ($badNames as $b) {
+        $problems[] = "src/ filename '$b' contains '@' or whitespace; Subversion cannot commit it";
+        echo "   unsafe filename: $b\n";
+    }
+} else {
+    echo "   $nameCount files, none contain '@' or whitespace\n";
+}
+
 // ---- client entry point ---------------------------------------------------
 // BGA imports modules/js/Game.js as an ES module and calls `new gameModule.Game()`.
 // The legacy Dojo define()/declare() form exports nothing at this path, which

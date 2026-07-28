@@ -16,7 +16,7 @@
 
 declare(strict_types=1);
 
-use Bga\Games\Hexpionage\Game;
+use Bga\Games\hexpionage\Game;
 
 final class Engine
 {
@@ -41,7 +41,7 @@ final class Engine
     {
         $this->game = new Game();
         foreach (self::STATE_CLASSES as $short) {
-            $fq = 'Bga\\Games\\Hexpionage\\States\\' . $short;
+            $fq = 'Bga\\Games\\hexpionage\\States\\' . $short;
             $inst = new $fq($this->game);
             $this->states[$fq] = $inst;
             if (isset($this->byId[$inst->id])) {

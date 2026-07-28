@@ -11,11 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\Hexpionage\States;
+namespace Bga\Games\hexpionage\States;
 
 use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\StateType;
-use Bga\Games\Hexpionage\Game;
+use Bga\Games\hexpionage\Game;
 
 class GameEnd extends GameState
 {

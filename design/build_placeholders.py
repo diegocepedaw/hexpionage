@@ -88,18 +88,20 @@ INTEL_VALUES = {
 
 
 def save_pair(img, name: str):
-    """Write both the 1x sheet and its @2x retina twin.
+    """Write both the 1x sheet and its _2x retina twin.
 
-    hexpionage.css serves the @2x sheets from a (min-resolution: 192dpi) media
+    hexpionage.css serves the _2x sheets from a (min-resolution: 192dpi) media
     query with an explicit CSS-pixel background-size, so the retina file must be
-    exactly double the pixel dimensions of the 1x sheet. Emitting only the 1x
+    exactly double the pixel dimensions of the 1x sheet. The name avoids "@",
+    which Subversion parses as a peg-revision separator, making any such file
+    impossible to commit to BGA's SVN. Emitting only the 1x
     file makes every sprite 404 on a retina display, which renders agents, intel
     and tokens invisible. See design/PIPELINE.md, which specifies both sizes.
     """
     out = OUT / f"{name}.png"
     img.save(out)
     retina = img.resize((img.width * 2, img.height * 2), Image.NEAREST)
-    retina.save(OUT / f"{name}@2x.png")
+    retina.save(OUT / f"{name}_2x.png")
     return out
 
 

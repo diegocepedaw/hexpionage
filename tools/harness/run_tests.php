@@ -45,9 +45,12 @@ HarnessPaths::$src = HarnessPaths::$root . '/src';
 require_once __DIR__ . '/engine.php';
 require_once __DIR__ . '/bot.php';
 
+// Matched case-insensitively: PHP resolves namespaces case-insensitively, so a
+// case-sensitive prefix test here would silently fail to autoload and surface
+// as a bogus "class not found" instead of the real error.
 spl_autoload_register(static function (string $class): void {
-    $prefix = 'Bga\\Games\\Hexpionage\\';
-    if (!str_starts_with($class, $prefix)) {
+    $prefix = 'Bga\\Games\\hexpionage\\';
+    if (stripos($class, $prefix) !== 0) {
         return;
     }
     $rel = str_replace('\\', '/', substr($class, strlen($prefix)));
