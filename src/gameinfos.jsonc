@@ -6,6 +6,7 @@
  *   - suggest_player_number is a single integer (not an array).
  *   - complexity / strategy / diplomacy / luck removed — these now live
  *     in the BGA Studio Game Metadata Manager web UI.
+ *   - exception_on_warning enabled — see below.
  */
 {
     "game_name": "Hexpionage",
@@ -44,6 +45,12 @@
     },
 
     "db_undo_support": true,
+
+    // Promote PHP warnings/notices to exceptions so they surface instead of
+    // silently corrupting state. This matches the offline harness, which already
+    // fails a run on any warning raised from src/ (tools/harness/run_tests.php).
+    // Per the BGA Studio Migration Guide; flagged by the 2026-07-28 dry run.
+    "exception_on_warning": true,
 
     "game_version": 1
 }

@@ -216,6 +216,13 @@ if (isset($gi['suggest_player_number']) && !is_int($gi['suggest_player_number'])
     $problems[] = 'gameinfos.jsonc suggest_player_number must be an integer';
     echo "   suggest_player_number is not an integer\n";
 }
+// Promotes PHP warnings to exceptions on Studio, matching this harness, which
+// already fails a run on any warning from src/. Without it, a warning-class bug
+// is invisible on a live table. Flagged by the 2026-07-28 Studio dry run.
+if (($gi['exception_on_warning'] ?? false) !== true) {
+    $problems[] = 'gameinfos.jsonc must set exception_on_warning to true';
+    echo "   exception_on_warning is not true\n";
+}
 
 // Every stat referenced from PHP must be declared in stats.jsonc, and vice versa.
 $stats = $jsonc($src . '/stats.jsonc');
