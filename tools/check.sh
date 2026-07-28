@@ -25,9 +25,20 @@ done < <(find src tools -name '*.php')
 [ "$FAILED" -eq 0 ] && pass "all PHP files parse"
 
 step "JS syntax"
+# node --check treats a .js file as a SCRIPT, so ES-module syntax errors (and a
+# missing `export`) slip through silently. modules/js/Game.js is loaded by BGA as
+# an ES module, so any file using import/export must be parsed in module mode —
+# which node only does for a .mjs extension.
+JSTMP=$(mktemp -d)
 for f in src/modules/js/*.js; do
-  if out=$(node --check "$f" 2>&1); then pass "$f"; else fail "$f"; echo "$out"; fi
+  if grep -qE '^[[:space:]]*(export|import)[[:space:]]' "$f"; then
+    cp "$f" "$JSTMP/mod.mjs"; target="$JSTMP/mod.mjs"; mode="module"
+  else
+    cp "$f" "$JSTMP/scr.js";  target="$JSTMP/scr.js";  mode="script"
+  fi
+  if out=$(node --check "$target" 2>&1); then pass "$f ($mode)"; else fail "$f ($mode)"; echo "$out"; fi
 done
+rm -rf "$JSTMP"
 
 step "server/client contract"
 php tools/harness/check_contract.php || fail "contract mismatch"

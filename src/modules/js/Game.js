@@ -19,8 +19,8 @@
  *   - All animations: slides ≤300ms, fades ≤200ms, trickle composite ≤1100ms.
  *   - All z-index < 900 (BGA dialogs occupy 950+).
  *   - CSS class prefix `hxp_`.
- *   - Active-player-only UI gated on this.player_id === this.gamedatas.activeplayer_id.
- *   - Server actions invoked via this.bgaPerformAction(actionName, args).
+ *   - Active-player-only UI gated on this.bga.players.getCurrentPlayerId() === this.gamedatas.activeplayer_id.
+ *   - Server actions invoked via this.bga.actions.performAction(actionName, args).
  *
  * Note on innerHTML usage: static developer-authored help/intro markup is
  * assigned via innerHTML for readability. All dynamic data flows through
@@ -29,11 +29,16 @@
 
 /* eslint-disable no-undef */
 
-define([
-  "dojo", "dojo/_base/declare",
-  "ebg/core/gamegui",
-  "ebg/counter"
-], function (dojo, declare) {
+/* Modern BGA framework: modules/js/Game.js is loaded as an ES module and the
+ * framework instantiates `new gameModule.Game(bga)`. The previous Dojo
+ * define()/declare() form is the LEGACY shape and is only honoured at the
+ * legacy path <gamename>.js, so at this path it exported nothing and the game
+ * failed with "gameModule.Game is not a constructor".
+ *
+ * Note the modern class does NOT extend gamegui: framework helpers come from
+ * the injected `bga` object (this.bga.*) instead of `this.*`.
+ * dojo remains available as a global, so dojo.subscribe / dojo.string are kept.
+ */
 
   /* ============================================================
    * Static metadata used for label/icon rendering.
@@ -127,13 +132,19 @@ define([
     return el;
   };
 
-  return declare("bgagame.hexpionage", ebg.core.gamegui, {
+export class Game {
 
     /* ============================================================
      * Construction
      * ============================================================ */
 
-    constructor: function () {
+    constructor(bga) {
+      // The modern framework injects its sub-component object (statusBar,
+      // players, actions, notifications, gameArea, playerPanels, gameui, ...).
+      // Unlike the legacy Dojo class, this class does NOT extend gamegui, so
+      // every framework helper is reached through this.bga.*.
+      this.bga = bga;
+
       this._uiState = {
         armedAction: null,
         armedAgentId: null,
@@ -160,10 +171,10 @@ define([
         originX: 600,
         originY: 304,
       };
-    },
+    }
 
     /* Read hex layout from CSS variables — FE-13 (S1). */
-    _refreshHexLayoutFromCSS: function () {
+    _refreshHexLayoutFromCSS() {
       try {
         const root = document.documentElement;
         const style = getComputedStyle(root);
@@ -182,13 +193,13 @@ define([
       } catch (e) {
         // getComputedStyle can throw in headless test envs; keep fallbacks.
       }
-    },
+    }
 
     /* ============================================================
      * setup(gamedatas) — BGA_PRIMER §5
      * ============================================================ */
 
-    setup: function (gamedatas) {
+    setup(gamedatas) {
       this.gamedatas = gamedatas;
 
       // FE-13 (S1): pull canonical hex layout from CSS before laying out.
@@ -214,13 +225,13 @@ define([
         const banner = document.getElementById("hxp_subphone_banner");
         if (banner) banner.hidden = false;
       }
-    },
+    }
 
     /* ============================================================
      * onEnteringState — STATE_MACHINE §2 (10 states)
      * ============================================================ */
 
-    onEnteringState: function (stateName, args) {
+    onEnteringState(stateName, args) {
       // FE-10 (S1): cache the live state name so _currentStateName() doesn't
       // read the framework's lagging gamedatas.gamestate.name during
       // transitions (BGA_PRIMER §5).
@@ -260,7 +271,7 @@ define([
         case "spawn":
           this._setSubstate(_("Spawn — pick a reserve agent, then a ✦ hex.")); // I18N-09
           this._setStatus("");
-          if (this.isCurrentPlayerActive()) {
+          if (this.bga.players.isCurrentPlayerActive()) {
             this._renderSpawnAffordances(stateArgs);
           }
           break;
@@ -287,7 +298,7 @@ define([
 
         case "analystBonusDecision":
           // §3.7b [D-26] — modal driven by private analystBonusDrawn notif.
-          if (this.isCurrentPlayerActive()) {
+          if (this.bga.players.isCurrentPlayerActive()) {
             this._setStatus(_("Decide on Analyst bonus…"));  // I18N-10
           } else {
             // I18N-11: substitute the active player's name into a single
@@ -314,13 +325,13 @@ define([
           this._setStatus("");
           break;
       }
-    },
+    }
 
     /* ============================================================
      * onLeavingState
      * ============================================================ */
 
-    onLeavingState: function (stateName) {
+    onLeavingState(stateName) {
       this._clearArmed();
       this._clearHighlights();
       this._hideModal("hxp_modal_intel_choice");
@@ -328,18 +339,18 @@ define([
       if (stateName === "analystBonusDecision") {
         this._hideModal("hxp_modal_analyst");
       }
-    },
+    }
 
     /* ============================================================
      * onUpdateActionButtons — UI_SPEC §3.7.1
      * ============================================================ */
 
-    onUpdateActionButtons: function (stateName, args) {
+    onUpdateActionButtons(stateName, args) {
       const buttonHost = document.getElementById("hxp_action_buttons");
       if (!buttonHost) return;
       while (buttonHost.firstChild) buttonHost.removeChild(buttonHost.firstChild);
 
-      if (!this.isCurrentPlayerActive()) return;
+      if (!this.bga.players.isCurrentPlayerActive()) return;
 
       const stateArgs = args || {};
 
@@ -348,7 +359,7 @@ define([
         case "spawn":
           // I18N-15..21: every visible button label routed through _().
           this._addBtn(buttonHost, _("Pass Spawn"), "hxp_btn_secondary", () => {
-            this.bgaPerformAction("actPassSpawn");
+            this.bga.actions.performAction("actPassSpawn");
           });
           // FE-30 (S3): explicit [Cancel] when an agent is armed for spawn.
           if (this._uiState.armedAgentId) {
@@ -389,7 +400,7 @@ define([
           ]);
 
           this._addBtn(buttonHost, _("End Turn"), "hxp_btn_primary", () => {
-            this.bgaPerformAction("actPassActions");
+            this.bga.actions.performAction("actPassActions");
           });
           this._addBtn(buttonHost, "?", "hxp_btn_ghost", () => this._showHelpModal());
           break;
@@ -402,22 +413,22 @@ define([
         default:
           break;
       }
-    },
+    }
 
     /* ============================================================
      * Action button helpers
      * ============================================================ */
 
-    _addBtn: function (host, label, cls, onClick, opts) {
+    _addBtn(host, label, cls, onClick, opts) {
       const btn = _h("button", { className: "hxp_btn " + (cls || ""), text: label });
       if (opts && opts.title) btn.title = opts.title;
       if (opts && opts.disabled) btn.disabled = true;
       btn.addEventListener("click", onClick);
       host.appendChild(btn);
       return btn;
-    },
+    }
 
-    _addActionBtn: function (host, label, actionName, legal) {
+    _addActionBtn(host, label, actionName, legal) {
       const isLegal = !!legal[actionName];
       const btn = this._addBtn(host, label, "", () => this._armAction(actionName, legal[actionName]), {
         title: this._tooltipForAction(actionName, isLegal),
@@ -425,9 +436,9 @@ define([
       if (!isLegal) btn.classList.add("is-disabled");
       btn.dataset.action = actionName;
       return btn;
-    },
+    }
 
-    _addDropdown: function (host, label, items) {
+    _addDropdown(host, label, items) {
       const allDisabled = items.every(it => !it.legal[it.action]);
       if (allDisabled) return;
 
@@ -452,15 +463,15 @@ define([
 
       wrapper.appendChild(menu);
       host.appendChild(wrapper);
-    },
+    }
 
-    _legalActionsByName: function (legalActionsArr) {
+    _legalActionsByName(legalActionsArr) {
       const out = {};
       (legalActionsArr || []).forEach(entry => { out[entry.name] = entry; });
       return out;
-    },
+    }
 
-    _tooltipForAction: function (actionName, isLegal) {
+    _tooltipForAction(actionName, isLegal) {
       // I18N-22..23: each tooltip string wrapped with _(). Disabled-suffix
       // is composed via dojo.string.substitute so the translator sees one
       // complete sentence (avoids concatenation anti-pattern).
@@ -485,13 +496,13 @@ define([
         _("${base} (Currently disabled.)"),
         { base: base }
       );
-    },
+    }
 
     /* ============================================================
      * Action arming flow — UI_SPEC §3.7.2
      * ============================================================ */
 
-    _armAction: function (actionName, legalEntry) {
+    _armAction(actionName, legalEntry) {
       this._clearArmed();
       this._uiState.armedAction = actionName;
       this._uiState.armedAgentId = null;
@@ -503,9 +514,9 @@ define([
 
       this._highlightLegalSources(actionName, legalEntry);
       this._setStatus(_("Pick a source agent or target."));    // I18N-24
-    },
+    }
 
-    _clearArmed: function () {
+    _clearArmed() {
       this._uiState.armedAction = null;
       this._uiState.armedAgentId = null;
       this._uiState.armedLegalEntry = null;
@@ -514,9 +525,9 @@ define([
       // FE-24 (S2): also reset the gold outline on reserve cells; otherwise
       // Escape leaves the cell visually armed.
       document.querySelectorAll(".hxp_reserve_cell.is-armed").forEach(c => c.classList.remove("is-armed"));
-    },
+    }
 
-    _highlightLegalSources: function (actionName, entry) {
+    _highlightLegalSources(actionName, entry) {
       this._clearHighlights();
       if (!entry) return;
 
@@ -536,22 +547,22 @@ define([
           }
         });
       }
-    },
+    }
 
-    _clearHighlights: function () {
+    _clearHighlights() {
       document.querySelectorAll(".hxp_hex.is-legal,.hxp_hex.is-armed-source,.hxp_hex.is-target-preview")
         .forEach(n => n.classList.remove("is-legal", "is-armed-source", "is-target-preview"));
       document.querySelectorAll(".hxp_agent.is-legal,.hxp_agent.is-armed-source")
         .forEach(n => n.classList.remove("is-legal", "is-armed-source"));
       document.querySelectorAll(".hxp_intel.is-legal")
         .forEach(n => n.classList.remove("is-legal"));
-    },
+    }
 
     /* ============================================================
      * Spawn UI — UI_SPEC §3.6
      * ============================================================ */
 
-    _renderSpawnAffordances: function (args) {
+    _renderSpawnAffordances(args) {
       (args.available_spawn_hexes || []).forEach(hx => {
         const node = this._hexNode(hx.q, hx.r);
         if (node) node.classList.add("is-legal");
@@ -581,13 +592,13 @@ define([
           else cell.classList.add("is-disabled");
         });
       }
-    },
+    }
 
     /* ============================================================
      * Hex grid (UI_SPEC §2)
      * ============================================================ */
 
-    _setupHexOverlay: function () {
+    _setupHexOverlay() {
       // FE-12 (S0): backend now ships board_layout with separate field_hexes,
       // orange_hexes, spawn_row_hexes, and intel_entry_top_left/right anchors.
       // Render every clickable hex (Field + Orange) with the correct CSS class
@@ -627,35 +638,35 @@ define([
 
       fieldHexes.forEach(hx => renderHex(hx, "hxp_hex_field"));
       orangeHexes.forEach(hx => renderHex(hx, "hxp_hex_orange"));
-    },
+    }
 
-    _hexNode: function (q, r) { return this._hexNodes[q + "," + r] || null; },
+    _hexNode(q, r) { return this._hexNodes[q + "," + r] || null; }
 
     /**
      * Pointy-top axial → pixel transform per UI_SPEC §2.3.
      */
-    hexToPixel: function (q, r) {
+    hexToPixel(q, r) {
       const R = this._hex.R;
       const W = Math.sqrt(3) * R;
       const H = 2 * R;
       const x = this._hex.originX + W * (q + r / 2);
       const y = this._hex.originY + (3 * R / 2) * r;
       return { x: x, y: y, w: W, h: H };
-    },
+    }
 
     /**
      * Inverse transform with Red Blob cube round.
      */
-    pixelToHex: function (px, py) {
+    pixelToHex(px, py) {
       const R = this._hex.R;
       const x = px - this._hex.originX;
       const y = py - this._hex.originY;
       const q = (Math.sqrt(3) / 3 * x - 1 / 3 * y) / R;
       const r = (2 / 3 * y) / R;
       return this._cubeRound(q, r);
-    },
+    }
 
-    _cubeRound: function (q, r) {
+    _cubeRound(q, r) {
       const x = q;
       const z = r;
       const y = -x - z;
@@ -665,15 +676,15 @@ define([
       else if (yd > zd)        ry = -rx - rz;
       else                     rz = -rx - ry;
       return { q: rx, r: rz };
-    },
+    }
 
-    _onHexClick: function (q, r) {
-      if (!this.isCurrentPlayerActive()) return;
+    _onHexClick(q, r) {
+      if (!this.bga.players.isCurrentPlayerActive()) return;
       const action = this._uiState.armedAction;
 
       if (this._currentStateName() === "spawn") {
         if (this._uiState.armedAgentId !== null) {
-          this.bgaPerformAction("actSpawnAgent", {
+          this.bga.actions.performAction("actSpawnAgent", {
             agent_id: this._uiState.armedAgentId, q: q, r: r,
           });
           this._clearArmed();
@@ -694,7 +705,7 @@ define([
       switch (action) {
         case "actMoveAgent":
           if (this._uiState.armedAgentId) {
-            this.bgaPerformAction("actMoveAgent", {
+            this.bga.actions.performAction("actMoveAgent", {
               agent_id: this._uiState.armedAgentId, q: q, r: r,
             });
             this._clearArmed();
@@ -702,7 +713,7 @@ define([
           break;
         case "actEngineerPlaceBlockadeAdjacent":
           if (this._uiState.armedAgentId) {
-            this.bgaPerformAction("actEngineerPlaceBlockadeAdjacent", {
+            this.bga.actions.performAction("actEngineerPlaceBlockadeAdjacent", {
               engineer_id: this._uiState.armedAgentId, q: q, r: r,
             });
             this._clearArmed();
@@ -712,7 +723,7 @@ define([
           if (this._uiState.armedAgentId) {
             const intelOpts = this._uiState.armedExtra || [];
             this._pickIntelThen(intelOpts, (intelId) => {
-              this.bgaPerformAction("actEngineerPlaceBlockadeAnywhere", {
+              this.bga.actions.performAction("actEngineerPlaceBlockadeAnywhere", {
                 engineer_id: this._uiState.armedAgentId, q: q, r: r, intel_id: intelId,
               });
               this._clearArmed();
@@ -721,7 +732,7 @@ define([
           break;
         case "actCommsMoveIntelUp":
           if (this._uiState.armedExtra && this._uiState.armedExtra.intel_id) {
-            this.bgaPerformAction("actCommsMoveIntelUp", {
+            this.bga.actions.performAction("actCommsMoveIntelUp", {
               comms_id: this._uiState.armedExtra.comms_agent_id,
               intel_id: this._uiState.armedExtra.intel_id, q: q, r: r,
             });
@@ -735,7 +746,7 @@ define([
             const commsId = this._uiState.armedExtra.comms_agent_id;
             const targetQ = q, targetR = r;
             this._pickIntelThen(intelOpts.filter(id => id !== intelId), (paid) => {
-              this.bgaPerformAction("actCommsMoveIntelDown", {
+              this.bga.actions.performAction("actCommsMoveIntelDown", {
                 target_intel_id: intelId, q: targetQ, r: targetR,
                 comms_id: commsId, paid_intel_id: paid,
               });
@@ -746,13 +757,13 @@ define([
         default:
           break;
       }
-    },
+    }
 
     /* ============================================================
      * Agent / intel / blockade rendering helpers
      * ============================================================ */
 
-    _renderInitialBoard: function () {
+    _renderInitialBoard() {
       ["hxp_blockade_layer", "hxp_intel_layer", "hxp_agent_layer", "hxp_pin_layer"].forEach(id => {
         const n = document.getElementById(id);
         if (n) while (n.firstChild) n.removeChild(n.firstChild);
@@ -775,9 +786,9 @@ define([
       (this.gamedatas.agents || []).forEach(agent => {
         if (agent.pinned_until_turn) this._renderPinMarker(agent);
       });
-    },
+    }
 
-    _spawnAgentNode: function (agent) {
+    _spawnAgentNode(agent) {
       const layer = document.getElementById("hxp_agent_layer");
       if (!layer) return;
       const colorClass = (agent.owner === this._whitePlayerId() ? "hxp_agent_white" : "hxp_agent_black");
@@ -793,9 +804,9 @@ define([
       layer.appendChild(node);
       this._agentNodes[agent.id] = node;
       return node;
-    },
+    }
 
-    _placeIntelNode: function (tile) {
+    _placeIntelNode(tile) {
       const layer = document.getElementById("hxp_intel_layer");
       if (!layer) return;
       const typeClass = "hxp_intel_" + INTEL_TYPE_BY_ID[tile.type];
@@ -818,9 +829,9 @@ define([
       node.addEventListener("click", () => this._onIntelClick(tile.id));
       layer.appendChild(node);
       this._intelNodes[tile.id] = node;
-    },
+    }
 
-    _placeBlockadeNode: function (b) {
+    _placeBlockadeNode(b) {
       const layer = document.getElementById("hxp_blockade_layer");
       if (!layer) return;
       const colorClass = (b.owner === this._whitePlayerId() ? "hxp_token_white" : "hxp_token_black");
@@ -831,9 +842,9 @@ define([
       node.style.top  = px.y + "px";
       layer.appendChild(node);
       this._blockadeNodes[b.id] = node;
-    },
+    }
 
-    _renderHeldIntelBadges: function (agent) {
+    _renderHeldIntelBadges(agent) {
       // FE-02 (S1): use a dedicated per-agent badge map for cleanup so we
       // don't depend on parentNode + DOM-query selectors (which leak
       // orphans across re-parenting).
@@ -865,9 +876,9 @@ define([
         if (host) host.appendChild(badge);
         this._intelBadgeNodes[agent.id].push(badge);
       });
-    },
+    }
 
-    _renderPinMarker: function (agent) {
+    _renderPinMarker(agent) {
       const layer = document.getElementById("hxp_pin_layer");
       if (!layer) return;
       const opponentColor = (agent.owner === this._whitePlayerId() ? "hxp_token_black" : "hxp_token_white");
@@ -880,9 +891,9 @@ define([
       this._pinNodes[agent.id] = node;
       const agentNode = this._agentNodes[agent.id];
       if (agentNode) agentNode.classList.add("is-pinned");
-    },
+    }
 
-    _whitePlayerId: function () {
+    _whitePlayerId() {
       // FE-11 (S1): BGA player ordering comes from player_no (1 or 2), NOT
       // numeric player_id. White = player_no=1, Black = player_no=2 per
       // STATE_MODEL §4.1 / BGA_PRIMER §6. Sorting by id silently swaps colors
@@ -895,10 +906,10 @@ define([
       }
       // Fallback: first id in the players map.
       return ids.length ? Number(ids[0]) : null;
-    },
+    }
 
-    _onAgentClick: function (agentId) {
-      if (!this.isCurrentPlayerActive()) return;
+    _onAgentClick(agentId) {
+      if (!this.bga.players.isCurrentPlayerActive()) return;
       const action = this._uiState.armedAction;
       if (!action) return;
 
@@ -921,7 +932,7 @@ define([
             if (action === "actSmugglerBoostActions") {
               const opts = this._intelOptionsFor(entry, agentId) || [];
               this._pickIntelThen(opts, (intelId) => {
-                this.bgaPerformAction("actSmugglerBoostActions", {
+                this.bga.actions.performAction("actSmugglerBoostActions", {
                   smuggler_id: agentId, intel_id: intelId,
                 });
                 this._clearArmed();
@@ -935,7 +946,7 @@ define([
           if (!this._uiState.armedAgentId) {
             setSource();
           } else {
-            this.bgaPerformAction(action, {
+            this.bga.actions.performAction(action, {
               hacker_id: this._uiState.armedAgentId,
               target_agent_id: agentId,
             });
@@ -953,7 +964,7 @@ define([
             );
             const intelOpts = (transferEntry && transferEntry.transferable_intel_ids) || [];
             this._pickIntelThen(intelOpts, (intelId) => {
-              this.bgaPerformAction("actTransferIntel", {
+              this.bga.actions.performAction("actTransferIntel", {
                 source_agent_id: this._uiState.armedAgentId,
                 target_agent_id: agentId,
                 intel_id: intelId,
@@ -965,7 +976,7 @@ define([
 
         case "actRetireAgent":
           // FREE per [D-14]; payload is just {agent_id} per [D-26].
-          this.bgaPerformAction("actRetireAgent", { agent_id: agentId });
+          this.bga.actions.performAction("actRetireAgent", { agent_id: agentId });
           this._clearArmed();
           break;
 
@@ -984,7 +995,7 @@ define([
             const ctx = this._uiState.armedExtra;
             const opts = this._intelOptionsFor(entry, ctx.smuggler_id) || [];
             this._pickIntelThen(opts, (intelId) => {
-              this.bgaPerformAction("actSmugglerSwapAgents", {
+              this.bga.actions.performAction("actSmugglerSwapAgents", {
                 smuggler_id: ctx.smuggler_id,
                 agent_a_id: ctx.agent_a_id,
                 agent_b_id: agentId,
@@ -1002,7 +1013,7 @@ define([
             const da = (entry.double_agents || []).find(d => d.agent_id === this._uiState.armedAgentId);
             const intelOpts = (da && da.transferable_intel_ids) || [];
             this._pickIntelThen(intelOpts, (intelId) => {
-              this.bgaPerformAction("actDoubleAgentTransfer", {
+              this.bga.actions.performAction("actDoubleAgentTransfer", {
                 double_agent_id: this._uiState.armedAgentId,
                 target_agent_id: agentId,
                 intel_id: intelId,
@@ -1019,9 +1030,9 @@ define([
         default:
           break;
       }
-    },
+    }
 
-    _highlightLegalTargetsForAgent: function (action, agentId, entry) {
+    _highlightLegalTargetsForAgent(action, agentId, entry) {
       this._clearHighlights();
       const src = this._agentNodes[agentId];
       if (src) src.classList.add("is-armed-source");
@@ -1085,9 +1096,9 @@ define([
         default:
           break;
       }
-    },
+    }
 
-    _intelOptionsFor: function (entry, agentId) {
+    _intelOptionsFor(entry, agentId) {
       const groups = ["smugglers", "engineers", "hackers", "double_agents"];
       for (let i = 0; i < groups.length; i++) {
         const arr = entry[groups[i]] || [];
@@ -1095,10 +1106,10 @@ define([
         if (m && m.intel_paid_options) return m.intel_paid_options;
       }
       return [];
-    },
+    }
 
-    _onIntelClick: function (intelId) {
-      if (!this.isCurrentPlayerActive()) return;
+    _onIntelClick(intelId) {
+      if (!this.bga.players.isCurrentPlayerActive()) return;
       const action = this._uiState.armedAction;
       if (action !== "actCommsMoveIntelUp" && action !== "actCommsMoveIntelDown") return;
       const entry = this._uiState.armedLegalEntry || {};
@@ -1115,13 +1126,13 @@ define([
         if (n) n.classList.add("is-legal");
       });
       this._setStatus(_("Pick the destination hex (NW/NE for Up, SW/SE for Down).")); // I18N-26
-    },
+    }
 
     /* ============================================================
      * Intel choice modal — UI_SPEC §4
      * ============================================================ */
 
-    _pickIntelThen: function (intelIds, callback) {
+    _pickIntelThen(intelIds, callback) {
       if (!intelIds || intelIds.length <= 1) {
         callback(intelIds && intelIds.length === 1 ? intelIds[0] : null);
         return;
@@ -1159,13 +1170,13 @@ define([
         this._hideModal("hxp_modal_intel_choice");
         this._clearArmed();
       };
-    },
+    }
 
     /* ============================================================
      * Hacker steal wizard — UI_SPEC §4.6
      * ============================================================ */
 
-    _openStealWizard: function (entry, victimAgentId) {
+    _openStealWizard(entry, victimAgentId) {
       const title = document.getElementById("hxp_modal_steal_title");
       const body  = document.getElementById("hxp_modal_steal_body");
 
@@ -1222,7 +1233,7 @@ define([
           const btn = _h("button", { className: "hxp_btn", text: labelText });
           btn.addEventListener("click", () => {
             this._hideModal("hxp_modal_steal");
-            this.bgaPerformAction("actHackerStealIntel", {
+            this.bga.actions.performAction("actHackerStealIntel", {
               hacker_id: chosenHacker.agent_id,
               target_agent_id: victimAgentId,
               stolen_intel_id: stolenId,
@@ -1249,19 +1260,19 @@ define([
           renderStep1();
         }
       };
-    },
+    }
 
     /* ============================================================
      * Player panels & dice tray
      * ============================================================ */
 
-    _renderPlayerPanels: function () {
+    _renderPlayerPanels() {
       // FE-11 (S1): Assign sides via "self = left" (active viewer always sees
       // their own panel on the left), with the opponent on the right.
       // Spectator: fall back to player_no ordering.
       const players = this.gamedatas.players || {};
       const allIds = Object.keys(players).map(Number);
-      const selfId = Number(this.player_id);
+      const selfId = Number(this.bga.players.getCurrentPlayerId());
       let leftId, rightId;
       if (selfId && players[selfId]) {
         leftId = selfId;
@@ -1321,10 +1332,10 @@ define([
           panel.classList.remove("is-active");
         }
       });
-    },
+    }
 
-    _onReserveCellClick: function (cell) {
-      if (!this.isCurrentPlayerActive()) return;
+    _onReserveCellClick(cell) {
+      if (!this.bga.players.isCurrentPlayerActive()) return;
       if (this._currentStateName() !== "spawn") return;
       if (cell.classList.contains("is-spent")) return;
       const ownerId = Number(cell.dataset.owner);
@@ -1334,9 +1345,9 @@ define([
       cell.classList.add("is-armed");
       this._uiState.armedAgentId = Number(cell.dataset.agentId);
       this._setStatus(_("Pick a ✦ hex to spawn."));    // I18N-36
-    },
+    }
 
-    _renderDiceTray: function (diceState) {
+    _renderDiceTray(diceState) {
       const tray = document.getElementById("hxp_dice_tray");
       if (!tray) return;
       while (tray.firstChild) tray.removeChild(tray.firstChild);
@@ -1357,9 +1368,9 @@ define([
         }
         tray.appendChild(die);
       });
-    },
+    }
 
-    _setDieFace: function (dieNode, face) {
+    _setDieFace(dieNode, face) {
       const pips = dieNode.querySelector(".hxp_die_pips");
       const arrow = dieNode.querySelector(".hxp_die_arrow");
       if (!pips || !arrow) return;
@@ -1369,22 +1380,22 @@ define([
         pips.appendChild(_h("span", { className: "hxp_die_pip" }));
       }
       arrow.textContent = (face === "odd") ? "↙" : "↘";
-    },
+    }
 
-    _renderBag: function (size) {
+    _renderBag(size) {
       const el = document.querySelector(".hxp_bag_count");
       if (el) el.textContent = (size || 0);
-    },
+    }
 
-    _renderScores: function () {
+    _renderScores() {
       const players = this.gamedatas.players || {};
       Object.keys(players).forEach(pid => {
         const p = players[pid];
         this._slideScoreMarker(Number(pid), p.score);
       });
-    },
+    }
 
-    _slideScoreMarker: function (playerId, score) {
+    _slideScoreMarker(playerId, score) {
       // Score-track baked into board.png top-right (MISSING §10).
       // Anchor pixels to be confirmed [TODO G-02 / score-anchor calibration];
       // these placeholders approximate a two-row 0–10 / 11–20 strip.
@@ -1407,13 +1418,13 @@ define([
       node.style.left = x + "px";
       node.style.top  = y + "px";
       node.dataset.score = score;
-    },
+    }
 
     /* ============================================================
      * Phase / status helpers
      * ============================================================ */
 
-    _setPhaseBreadcrumb: function (stateName) {
+    _setPhaseBreadcrumb(stateName) {
       const map = {
         trickleDrawLeft: "trickle",
         trickleDrawRight: "trickle",
@@ -1430,64 +1441,64 @@ define([
       document.querySelectorAll(".hxp_phase_step").forEach(li => {
         li.classList.toggle("is-current", li.dataset.phase === target);
       });
-    },
+    }
 
-    _setSubstate: function (text) {
+    _setSubstate(text) {
       const el = document.getElementById("hxp_phase_substate");
       if (el) el.textContent = text || "";
-    },
+    }
 
-    _setStatus: function (text, kind) {
+    _setStatus(text, kind) {
       const el = document.getElementById("hxp_status_bar");
       if (!el) return;
       el.textContent = text || "";
       el.classList.toggle("is-warning", kind === "warning");
       el.classList.toggle("is-info",    kind === "info");
-    },
+    }
 
-    _updateActionCounter: function (remaining, max) {
+    _updateActionCounter(remaining, max) {
       const counter = document.getElementById("hxp_action_counter");
       if (!counter) return;
       counter.querySelector(".hxp_action_remaining").textContent = (remaining != null ? remaining : 0);
       counter.querySelector(".hxp_action_max").textContent = (max != null ? max : 3);
       counter.classList.toggle("is-zero", remaining === 0);
       counter.classList.toggle("is-boosted", max === 4);
-    },
+    }
 
-    _currentStateName: function () {
+    _currentStateName() {
       // FE-10 (S1): prefer the cached live state from onEnteringState; fall
       // back to gamedatas.gamestate.name only on first paint before the
       // framework has called onEnteringState yet.
       if (this._currentState) return this._currentState;
       return (this.gamedatas && this.gamedatas.gamestate && this.gamedatas.gamestate.name) || null;
-    },
+    }
 
-    _getActivePlayerName: function () {
+    _getActivePlayerName() {
       const id = Number(this.gamedatas.activeplayer_id);
       const p  = (this.gamedatas.players || {})[id];
       return p ? p.name : _("Active player");    // I18N-38
-    },
+    }
 
     /* ============================================================
      * Modals
      * ============================================================ */
 
-    _showModal: function (id) {
+    _showModal(id) {
       const m = document.getElementById(id);
       if (m) m.hidden = false;
-    },
+    }
 
-    _hideModal: function (id) {
+    _hideModal(id) {
       const m = document.getElementById(id);
       if (m) m.hidden = true;
-    },
+    }
 
-    _showHelpModal: function () {
+    _showHelpModal() {
       this._showModal("hxp_modal_help");
       this._renderHelpTab("quickref");
-    },
+    }
 
-    _renderHelpTab: function (tab) {
+    _renderHelpTab(tab) {
       const tabs = document.querySelectorAll(".hxp_help_tab");
       tabs.forEach(t => t.classList.toggle("is-active", t.dataset.tab === tab));
       const host = document.getElementById("hxp_help_content");
@@ -1565,9 +1576,9 @@ define([
           ]);
           break;
       }
-    },
+    }
 
-    _showIntroModal: function () {
+    _showIntroModal() {
       this._showModal("hxp_modal_intro");
       const host = document.getElementById("hxp_intro_slides");
       if (!host) return;
@@ -1597,9 +1608,9 @@ define([
         else { dismiss(); }
       };
       if (skip) skip.onclick = dismiss;
-    },
+    }
 
-    _wireStaticHandlers: function () {
+    _wireStaticHandlers() {
       const closeBtn = document.getElementById("hxp_btn_help_close");
       if (closeBtn) closeBtn.onclick = () => this._hideModal("hxp_modal_help");
       document.querySelectorAll(".hxp_help_tab").forEach(t => {
@@ -1628,25 +1639,31 @@ define([
       // against programmatic-action paths in the wrong state).
       if (keepBtn)   keepBtn.addEventListener("click", () => {
         if (this._currentStateName() !== "analystBonusDecision") return;
-        if (!this.isCurrentPlayerActive()) return;
-        this.bgaPerformAction("actAnalystKeep");
+        if (!this.bga.players.isCurrentPlayerActive()) return;
+        this.bga.actions.performAction("actAnalystKeep");
         this._hideModal("hxp_modal_analyst");
       });
       if (returnBtn) returnBtn.addEventListener("click", () => {
         if (this._currentStateName() !== "analystBonusDecision") return;
-        if (!this.isCurrentPlayerActive()) return;
-        this.bgaPerformAction("actAnalystReturn");
+        if (!this.bga.players.isCurrentPlayerActive()) return;
+        this.bga.actions.performAction("actAnalystReturn");
         this._hideModal("hxp_modal_analyst");
       });
       if (helpBtn)   helpBtn.addEventListener("click", () => this._showHelpModal());
-    },
+    }
 
     /* ============================================================
      * Notifications — CONTRACT.md §2 (every name has a handler)
      * ============================================================ */
 
     // FE-03 (S2): canonical BGA framework name (auto-invoked on gamegui).
-    setupNotifications: function () {
+    setupNotifications() {
+      // The framework calls this itself, and setup() also calls it explicitly
+      // (FE-03). Subscribing twice would run every handler — and every
+      // animation — twice per notification, so make it idempotent.
+      if (this._notificationsBound) return;
+      this._notificationsBound = true;
+
       const list = [
         ["gameStarted",            1000],
         ["intelDrawn",              250],
@@ -1680,22 +1697,22 @@ define([
         const handler = "notif_" + name;
         if (typeof this[handler] === "function") {
           dojo.subscribe(name, this, handler);
-          this.notifqueue.setSynchronous(name, dur);
+          this.bga.gameui.notifqueue.setSynchronous(name, dur);
         }
       });
-    },
+    }
 
     /* ============================================================
      * Notification handlers — UI_SPEC §6.1
      * ============================================================ */
 
-    notif_gameStarted: function (n) {
+    notif_gameStarted(n) {
       const root = document.getElementById("hxp_root");
       if (root) root.classList.add("hxp_anim_fade_in");
       this._renderBag(n.args.bag_size);
-    },
+    }
 
-    notif_intelDrawn: function (n) {
+    notif_intelDrawn(n) {
       const args = n.args;
       if (args.skipped) {
         // I18N-45: substituted single-key sentence.
@@ -1716,9 +1733,9 @@ define([
       (this.gamedatas.intel_revealed = this.gamedatas.intel_revealed || []).push({
         id: args.tile_id, type: args.type, score_value: score,
       });
-    },
+    }
 
-    notif_diceRolled: function (n) {
+    notif_diceRolled(n) {
       const dice = n.args.dice_state || {};
       INTEL_DIE_KEYS.forEach(key => {
         const node = document.querySelector('.hxp_die[data-die-key="' + key + '"]');
@@ -1728,9 +1745,9 @@ define([
         node.classList.add("hxp_anim_die");
         if (dice[key]) this._setDieFace(node, dice[key]);
       });
-    },
+    }
 
-    notif_trickleResolved: function (n) {
+    notif_trickleResolved(n) {
       // §3.5 + §6.2 composite.
       const args = n.args;
       const moves = args.moves || [];
@@ -1799,9 +1816,9 @@ define([
       });
 
       setTimeout(() => this._renderBag(args.new_bag_size), 1000);
-    },
+    }
 
-    notif_agentSpawned: function (n) {
+    notif_agentSpawned(n) {
       const a = n.args;
       this._spawnAgentNode({
         id: a.agent_id, owner: a.owner, type: a.type, hex: a.hex,
@@ -1821,9 +1838,9 @@ define([
           }
         }
       }
-    },
+    }
 
-    notif_agentMoved: function (n) {
+    notif_agentMoved(n) {
       const a = n.args;
       const node = this._agentNodes[a.agent_id];
       if (!node) return;
@@ -1843,9 +1860,9 @@ define([
         this._renderHeldIntelBadges(agent);
       }
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_intelTransferred: function (n) {
+    notif_intelTransferred(n) {
       const a = n.args;
       const fromAgent = (this.gamedatas.agents || []).find(x => x.id === a.from_agent_id);
       const toAgent   = (this.gamedatas.agents || []).find(x => x.id === a.to_agent_id);
@@ -1858,9 +1875,9 @@ define([
         this._renderHeldIntelBadges(toAgent);
       }
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_agentRetired: function (n) {
+    notif_agentRetired(n) {
       // FE-06 (S1): animate each scored-intel badge sliding to the score
       // panel (staggered 50ms) per UI_SPEC §6.1. Also cleans badges via the
       // per-agent map (FE-02) so no ghost badges remain after retire.
@@ -1911,7 +1928,7 @@ define([
       // until analystBonusKept/Returned/Skipped fires. Active player gets
       // their own "Decide on Analyst bonus…" prompt elsewhere.
       if (a.analyst_bonus_pending) {
-        if (Number(this.player_id) !== Number(a.agent_owner)) {
+        if (Number(this.bga.players.getCurrentPlayerId()) !== Number(a.agent_owner)) {
           const ownerPlayer = (this.gamedatas.players || {})[a.agent_owner];
           const ownerName = ownerPlayer ? ownerPlayer.name : _("Active player");
           this._setStatus(
@@ -1923,14 +1940,14 @@ define([
           );
         }
       }
-    },
+    }
 
-    notif_analystBonusDrawn: function (n) {
+    notif_analystBonusDrawn(n) {
       // PRIVATE to active player [D-20]. Show modal.
       // FE-08 (S1): defense-in-depth — bail if we're not the active player.
       // The notif is server-private per CONTRACT §4.1, but if a regression
       // ever misroutes it, we must NOT leak the bonus tile type to opponents.
-      if (Number(this.player_id) !== Number(this.gamedatas.activeplayer_id)) {
+      if (Number(this.bga.players.getCurrentPlayerId()) !== Number(this.gamedatas.activeplayer_id)) {
         return;
       }
       const a = n.args;
@@ -1957,9 +1974,9 @@ define([
       if (returnBtn) returnBtn.textContent = _("Return to bag");
       this._renderBag(a.new_bag_size);
       this._showModal("hxp_modal_analyst");
-    },
+    }
 
-    notif_analystBonusKept: function (n) {
+    notif_analystBonusKept(n) {
       const a = n.args;
       this._renderBag(a.new_bag_size);
       this._hideModal("hxp_modal_analyst");
@@ -1975,22 +1992,22 @@ define([
       }
       // FE-07 (S2): clear the spectator's "<player> is deciding…" banner.
       this._setStatus("");
-    },
+    }
 
-    notif_analystBonusReturned: function (n) {
+    notif_analystBonusReturned(n) {
       this._renderBag(n.args.new_bag_size);
       this._hideModal("hxp_modal_analyst");
       // FE-07 (S2): clear the spectator's "<player> is deciding…" banner.
       this._setStatus("");
-    },
+    }
 
-    notif_analystBonusSkipped: function (n) {
+    notif_analystBonusSkipped(n) {
       this._setStatus(_("Bag empty — bonus forfeited."), "info");    // I18N-50
       this._hideModal("hxp_modal_analyst");
       setTimeout(() => this._setStatus(""), 600);
-    },
+    }
 
-    notif_blockadePlaced: function (n) {
+    notif_blockadePlaced(n) {
       const a = n.args;
       this._placeBlockadeNode({
         id: a.blockade_id, owner: a.owner, hex: a.hex,
@@ -2006,9 +2023,9 @@ define([
         }
       }
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_blockadeExpired: function (n) {
+    notif_blockadeExpired(n) {
       (n.args.cleared_blockades || []).forEach(b => {
         const node = this._blockadeNodes[b.blockade_id];
         if (node) {
@@ -2026,9 +2043,9 @@ define([
           }
         }
       });
-    },
+    }
 
-    notif_agentPinned: function (n) {
+    notif_agentPinned(n) {
       const a = n.args;
       const agent = (this.gamedatas.agents || []).find(x => x.id === a.target_agent_id);
       if (agent) {
@@ -2036,9 +2053,9 @@ define([
         this._renderPinMarker(agent);
       }
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_agentUnpinned: function (n) {
+    notif_agentUnpinned(n) {
       const a = n.args;
       const agent = (this.gamedatas.agents || []).find(x => x.id === a.target_agent_id);
       if (agent) agent.pinned_until_turn = null;
@@ -2051,9 +2068,9 @@ define([
       const aNode = this._agentNodes[a.target_agent_id];
       if (aNode) aNode.classList.remove("is-pinned");
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_pinExpired: function (n) {
+    notif_pinExpired(n) {
       (n.args.cleared_agents || []).forEach(c => {
         const node = this._pinNodes[c.agent_id];
         if (node) {
@@ -2066,9 +2083,9 @@ define([
         const agent = (this.gamedatas.agents || []).find(x => x.id === c.agent_id);
         if (agent) agent.pinned_until_turn = null;
       });
-    },
+    }
 
-    notif_intelStolen: function (n) {
+    notif_intelStolen(n) {
       const a = n.args;
       const victim = (this.gamedatas.agents || []).find(x => x.id === a.target_agent_id);
       const hacker = (this.gamedatas.agents || []).find(x => x.id === a.hacker_id);
@@ -2084,9 +2101,9 @@ define([
       }
       this._renderBag(a.new_bag_size);
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_agentSwapped: function (n) {
+    notif_agentSwapped(n) {
       const a = n.args;
       const aNode = this._agentNodes[a.agent_a_id];
       const bNode = this._agentNodes[a.agent_b_id];
@@ -2108,9 +2125,9 @@ define([
       if (aB) aB.hex = a.agent_b_new_hex;
       this._renderBag(a.new_bag_size);
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_agentRemovedHoneypot: function (n) {
+    notif_agentRemovedHoneypot(n) {
       const a = n.args;
       const node = this._agentNodes[a.agent_id];
       if (node) {
@@ -2122,9 +2139,9 @@ define([
       if (pinNode) { pinNode.remove(); delete this._pinNodes[a.agent_id]; }
       document.querySelectorAll('.hxp_intel_badge[data-agent-id="' + a.agent_id + '"]').forEach(node2 => node2.remove());
       this._renderBag(a.new_bag_size);
-    },
+    }
 
-    notif_agentDumpedOvercapacity: function (n) {
+    notif_agentDumpedOvercapacity(n) {
       const a = n.args;
       const agent = (this.gamedatas.agents || []).find(x => x.id === a.agent_id);
       if (agent) {
@@ -2134,9 +2151,9 @@ define([
         this._renderHeldIntelBadges(agent);
       }
       this._renderBag(a.new_bag_size);
-    },
+    }
 
-    notif_actionsBoosted: function (n) {
+    notif_actionsBoosted(n) {
       const a = n.args;
       this._updateActionCounter(a.new_actions_remaining, 4);
       const counter = document.getElementById("hxp_action_counter");
@@ -2145,9 +2162,9 @@ define([
         setTimeout(() => counter.classList.remove("hxp_anim_pulse"), 200);
       }
       this._renderBag(a.new_bag_size);
-    },
+    }
 
-    notif_intelMoved: function (n) {
+    notif_intelMoved(n) {
       const a = n.args;
       const node = this._intelNodes[a.intel_id];
       if (node) {
@@ -2165,9 +2182,9 @@ define([
       }
       this._renderBag(a.new_bag_size);
       this._echoActionCounter(a.actions_remaining);
-    },
+    }
 
-    notif_scoreUpdated: function (n) {
+    notif_scoreUpdated(n) {
       const a = n.args;
       const player = this.gamedatas.players[a.player_id];
       if (player) {
@@ -2195,13 +2212,13 @@ define([
       } catch (e) {
         // Defensive: counter API surface may differ across framework versions.
       }
-    },
+    }
 
     // NOTE: there is deliberately no notif_actionsRemaining handler.
     // CONTRACT §2.23: the server never emits a standalone `actionsRemaining`
     // notification; `actions_remaining` rides along in every mutating notif.
 
-    notif_turnEnded: function (n) {
+    notif_turnEnded(n) {
       const a = n.args;
       this.gamedatas.activeplayer_id = a.new_active_player_id;
       const turnEl = document.getElementById("hxp_turn_counter");
@@ -2209,9 +2226,9 @@ define([
       document.querySelectorAll(".hxp_player_panel").forEach(p => p.classList.remove("is-active"));
       const newPanel = this._panelFor(a.new_active_player_id);
       if (newPanel) newPanel.classList.add("is-active");
-    },
+    }
 
-    notif_gameEnded: function (n) {
+    notif_gameEnded(n) {
       // I18N-51: build the game-over banner via single-key substitution so
       // the translator sees one complete sentence; reason text uses its own
       // wrapped key.
@@ -2228,25 +2245,25 @@ define([
         ),
         "info"
       );
-    },
+    }
 
     /* ============================================================
      * Misc helpers
      * ============================================================ */
 
-    _echoActionCounter: function (remaining) {
+    _echoActionCounter(remaining) {
       if (remaining == null) return;
       const counter = document.getElementById("hxp_action_counter");
       if (!counter) return;
       const max = counter.classList.contains("is-boosted") ? 4 : 3;
       this._updateActionCounter(remaining, max);
-    },
+    }
 
-    _panelFor: function (playerId) {
-      // FE-11 (S1): Anchor "self = left, opponent = right" via this.player_id
+    _panelFor(playerId) {
+      // FE-11 (S1): Anchor "self = left, opponent = right" via the current player id
       // (BGA convention). Falls back to player_no=1 → left when self is a
       // spectator. Sorting numeric ids was incorrect.
-      const selfId = Number(this.player_id);
+      const selfId = Number(this.bga.players.getCurrentPlayerId());
       const targetId = Number(playerId);
       let side;
       if (selfId && (selfId === targetId)) {
@@ -2259,7 +2276,5 @@ define([
         side = (p && Number(p.player_no) === 1) ? "left" : "right";
       }
       return document.querySelector('[data-side="' + side + '"]');
-    },
-
-  });
-});
+    }
+}

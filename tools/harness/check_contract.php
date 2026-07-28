@@ -37,7 +37,9 @@ $emitted = array_values(array_unique(array_merge($m1[1], $m2[1])));
 sort($emitted);
 
 preg_match_all('/\[\s*"([A-Za-z0-9_]+)"\s*,\s*\d+\s*\]/', $js, $m3);
-preg_match_all('/notif_([A-Za-z0-9_]+)\s*:/', $js, $m4);
+// Handlers are `notif_x(n) {` as ES-class methods, or `notif_x: function` in the
+// legacy Dojo object-literal form. Accept both so the check survives either shape.
+preg_match_all('/notif_([A-Za-z0-9_]+)\s*[:(]/', $js, $m4);
 $registered = array_values(array_unique($m3[1]));
 $handlers = array_values(array_unique($m4[1]));
 sort($registered);
@@ -59,9 +61,10 @@ foreach ($m5 as $hit) {
 $serverActions = array_keys($serverParams);
 sort($serverActions);
 
-// Client: name => payload keys passed to bgaPerformAction.
+// Client: name => payload keys passed to the action call. Modern BGA uses
+// this.bga.actions.performAction(); the legacy alias was bgaPerformAction().
 preg_match_all(
-    '/bgaPerformAction\(\s*[\'"](act[A-Za-z0-9_]+)[\'"]\s*(?:,\s*\{(.*?)\}\s*)?\)/s',
+    '/(?:bgaPerformAction|performAction)\(\s*[\'"](act[A-Za-z0-9_]+)[\'"]\s*(?:,\s*\{(.*?)\}\s*)?\)/s',
     $js, $m6, PREG_SET_ORDER);
 $clientParams = [];
 foreach ($m6 as $hit) {
@@ -80,7 +83,7 @@ sort($clientActions);
 // pin/unpin branch). Collect their payload keys so those actions can still be
 // matched by parameter shape instead of being reported as unreachable.
 preg_match_all(
-    '/bgaPerformAction\(\s*([A-Za-z_$][A-Za-z0-9_$.]*)\s*,\s*\{(.*?)\}\s*\)/s',
+    '/(?:bgaPerformAction|performAction)\(\s*([A-Za-z_$][A-Za-z0-9_$.]*)\s*,\s*\{(.*?)\}\s*\)/s',
     $js, $m6b, PREG_SET_ORDER);
 $dynamicPayloads = [];
 foreach ($m6b as $hit) {
@@ -142,10 +145,12 @@ $report('player actions', $serverActions, $clientActions, 'server', 'client');
 // parameter names, so any mismatch is a hard runtime failure for that action.
 echo "action parameter names\n";
 $paramProblems = 0;
+$paramCompared = 0;
 foreach ($serverParams as $action => $params) {
     if (!isset($clientParams[$action])) {
         continue; // reported above
     }
+    $paramCompared++;
     $expected = array_values(array_diff($params, ['activePlayerId', 'active_player_id', 'currentPlayerId', 'current_player_id', 'args']));
     $sent = $clientParams[$action];
     sort($expected);
@@ -157,8 +162,14 @@ foreach ($serverParams as $action => $params) {
         $paramProblems++;
     }
 }
-if ($paramProblems === 0) {
-    echo "   all " . count($serverParams) . " actions agree\n";
+// This check guards BGA's autowire-by-name footgun, so it must never pass just
+// because the client-side regex matched nothing (e.g. after a JS syntax change).
+// Silence here has to mean "compared and agreed", not "found nothing to compare".
+if ($serverParams && $paramCompared === 0) {
+    echo "   NO client action calls parsed — the JS extraction is broken\n";
+    $problems[] = 'action parameter names: no client action calls parsed (JS extraction broken)';
+} elseif ($paramProblems === 0) {
+    printf("   all %d actions agree (%d compared)\n", count($serverParams), $paramCompared);
 }
 
 $missingStates = array_values(array_diff($serverStates, $jsCases));
@@ -222,6 +233,55 @@ if (isset($gi['suggest_player_number']) && !is_int($gi['suggest_player_number'])
 if (($gi['exception_on_warning'] ?? false) !== true) {
     $problems[] = 'gameinfos.jsonc must set exception_on_warning to true';
     echo "   exception_on_warning is not true\n";
+}
+
+// ---- client entry point ---------------------------------------------------
+// BGA imports modules/js/Game.js as an ES module and calls `new gameModule.Game()`.
+// The legacy Dojo define()/declare() form exports nothing at this path, which
+// fails at runtime with "gameModule.Game is not a constructor".
+echo "client entry point\n";
+$gamejs = $src . '/modules/js/Game.js';
+if (!preg_match('/^export\s+class\s+Game\b/m', file_get_contents($gamejs))) {
+    $problems[] = 'modules/js/Game.js must declare `export class Game` (modern BGA entry point)';
+    echo "   Game.js does not export a Game class\n";
+} else {
+    echo "   Game.js exports class Game\n";
+}
+
+// ---- view / template split ------------------------------------------------
+// The phplib engine renders <game>_<game>.tpl and substitutes the {VARS} that
+// view.php assigns. HTML placed after view.php's PHP close tag is never seen
+// by the engine, so players get raw {TXT_*} tokens on screen.
+echo "view/template\n";
+$tplPath  = $src . '/hexpionage_hexpionage.tpl';
+$viewPath = $src . '/hexpionage.view.php';
+if (!is_file($tplPath)) {
+    $problems[] = 'missing src/hexpionage_hexpionage.tpl (the game HTML template)';
+    echo "   MISSING hexpionage_hexpionage.tpl\n";
+} else {
+    $tpl  = file_get_contents($tplPath);
+    $view = file_get_contents($viewPath);
+
+    if (preg_match('/\?>\s*\S/', $view)) {
+        $problems[] = 'hexpionage.view.php has content after its PHP close tag — HTML belongs in the .tpl';
+        echo "   view.php has markup after the PHP close tag\n";
+    }
+    preg_match_all('/\{([A-Z][A-Z0-9_]*)\}/', $tpl, $tv);
+    preg_match_all('/\$this->tpl\[\'([A-Z][A-Z0-9_]*)\'\]/', $view, $pv);
+    $tplVars = array_values(array_unique($tv[1]));
+    $phpVars = array_values(array_unique($pv[1]));
+    sort($tplVars); sort($phpVars);
+    $unassigned = array_values(array_diff($tplVars, $phpVars));
+    $unused     = array_values(array_diff($phpVars, $tplVars));
+    printf("   tpl vars=%d  assigned=%d\n", count($tplVars), count($phpVars));
+    if ($unassigned) {
+        echo "   in .tpl but never assigned: " . implode(', ', $unassigned) . "\n";
+        $problems[] = 'tpl vars never assigned: ' . implode(', ', $unassigned);
+    }
+    if ($unused) {
+        echo "   assigned but not in .tpl: " . implode(', ', $unused) . "\n";
+        $problems[] = 'view.php assigns unused tpl vars: ' . implode(', ', $unused);
+    }
 }
 
 // Every stat referenced from PHP must be declared in stats.jsonc, and vice versa.

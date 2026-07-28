@@ -16,7 +16,11 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 REPO = Path(__file__).resolve().parent.parent
-SRC_BOARD = Path("/Users/dcepeda/Downloads/final_printing/game board/game_board_print.png")
+# The print masters live in the repo (design/masters/, Git LFS) — see ONBOARDING §6.
+# This previously pointed at ~/Downloads/final_printing/, which meant that on any
+# machine without that folder build_board() silently fell through to its solid-colour
+# fallback and overwrote the real board art. Verified byte-identical to the old path.
+SRC_BOARD = REPO / "design" / "masters" / "board" / "game_board_print.png"
 OUT = REPO / "src" / "img"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -83,6 +87,22 @@ INTEL_VALUES = {
 }
 
 
+def save_pair(img, name: str):
+    """Write both the 1x sheet and its @2x retina twin.
+
+    hexpionage.css serves the @2x sheets from a (min-resolution: 192dpi) media
+    query with an explicit CSS-pixel background-size, so the retina file must be
+    exactly double the pixel dimensions of the 1x sheet. Emitting only the 1x
+    file makes every sprite 404 on a retina display, which renders agents, intel
+    and tokens invisible. See design/PIPELINE.md, which specifies both sizes.
+    """
+    out = OUT / f"{name}.png"
+    img.save(out)
+    retina = img.resize((img.width * 2, img.height * 2), Image.NEAREST)
+    retina.save(OUT / f"{name}@2x.png")
+    return out
+
+
 def build_agents():
     """160×480, 6 rows × 2 cols of 80×80. Col 0 = white, col 1 = black."""
     img = Image.new("RGBA", (160, 480), (255, 255, 255, 0))
@@ -96,9 +116,7 @@ def build_agents():
         # Col 1 — "black" — dark fill
         dark = tuple(max(0, c - 60) for c in accent)
         draw_cell(img, 80, row * 80, 80, 80, dark, short, (255, 255, 255), font)
-    out = OUT / "agents.png"
-    img.save(out)
-    return out
+    return save_pair(img, "agents")
 
 
 def build_intel():
@@ -115,9 +133,7 @@ def build_intel():
         # Back: lighter / desaturated, "BACK" label
         back = tuple(min(255, c + 60) for c in color)
         draw_cell(img, 80, row * 80, 80, 80, back, "BACK", (0, 0, 0), font_back)
-    out = OUT / "intel.png"
-    img.save(out)
-    return out
+    return save_pair(img, "intel")
 
 
 def build_tokens():
@@ -135,9 +151,7 @@ def build_tokens():
         row = i // 2
         text = (0, 0, 0) if sum(fill) > 380 else (255, 255, 255)
         draw_cell(img, col * 40, row * 40, 40, 40, fill, label, text, font)
-    out = OUT / "tokens.png"
-    img.save(out)
-    return out
+    return save_pair(img, "tokens")
 
 
 def build_board():
