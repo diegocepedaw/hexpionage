@@ -2,6 +2,8 @@
 
 This file is for coding agents (Copilot CLI, Claude Code, Cursor, etc.). Humans
 should read [`ONBOARDING.md`](ONBOARDING.md) instead — it has the full tour.
+If you were just handed this project cold, [`HANDOVER.md`](HANDOVER.md) is the
+bootstrap prompt: current state, the immediate next task, and where the bugs are.
 
 ## The one-paragraph brief
 

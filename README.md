@@ -35,6 +35,7 @@ php tools/harness/run_tests.php --games=1 --seed=42 --verbose   # replay one gam
 
 New to the project? Read [`ONBOARDING.md`](ONBOARDING.md).
 Working on it as an AI agent? Read [`AGENTS.md`](AGENTS.md).
+Handing the project to a new agent session? Paste [`HANDOVER.md`](HANDOVER.md).
 
 ---
 
@@ -56,6 +57,7 @@ Full directory-by-directory tour: [`ONBOARDING.md` §3](ONBOARDING.md).
 |---|---|
 | [`ONBOARDING.md`](ONBOARDING.md) | You are picking this project up. Start here. |
 | [`AGENTS.md`](AGENTS.md) | You are an AI agent working in this repo. |
+| [`HANDOVER.md`](HANDOVER.md) | You are bootstrapping a fresh agent session — paste it as the opening prompt. |
 | [`docs/rulebook.md`](docs/rulebook.md) | You need to know what the game actually does. Canonical. |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | You hit a rules ambiguity — it was probably already adjudicated (D-01…D-26). |
 | [`docs/specs/CONTRACT.md`](docs/specs/CONTRACT.md) | You are changing anything that crosses the server/client boundary. |
