@@ -55,6 +55,9 @@ ENV_FILE = REPO / ".env.bga"
 
 DEFAULT_HOST = "1.studio.boardgamearena.com"
 DEFAULT_PORT = "2022"
+# SFTP drops you in a home directory that *contains* your project folders, so
+# the upload target is the project dir, not the home dir.
+DEFAULT_REMOTE_ROOT = "hexpionage"
 
 
 def load_env_file() -> None:
@@ -134,7 +137,11 @@ def upload_via_ssh(uploads, host, port, user, identity, remote_root, verify, che
         "-o", "StrictHostKeyChecking=accept-new",
     ]
     if identity:
-        cmd += ["-i", str(Path(identity).expanduser())]
+        # IdentitiesOnly stops ssh-agent from offering every other key you hold
+        # to a third-party server before it gets to this one, which both leaks
+        # unrelated public keys and can trip "Too many authentication failures".
+        cmd += ["-i", str(Path(identity).expanduser()),
+                "-o", "IdentitiesOnly=yes"]
     cmd += ["-b", "-", f"{user}@{host}"]
 
     print(f"\n== {'Checking' if check else 'Uploading to'} {user}@{host}:{port} (ssh key) ==")
@@ -213,11 +220,18 @@ def main() -> None:
                         help="SSH private key (default: $BGA_SFTP_KEY, else ssh-agent).")
     parser.add_argument("--password", action="store_true",
                         help="Force password auth via $BGA_SFTP_PASSWORD.")
-    parser.add_argument("--remote-root", default=".",
-                        help="Remote base directory (default: '.', the project root).")
+    parser.add_argument("--remote-root",
+                        default=os.environ.get("BGA_REMOTE_ROOT", DEFAULT_REMOTE_ROOT),
+                        help=f"Remote project directory (default: '{DEFAULT_REMOTE_ROOT}').")
     args = parser.parse_args()
 
+    # Our own prints block-buffer when stdout is a pipe, which would interleave
+    # them wrongly with the sftp subprocess's output.
+    sys.stdout.reconfigure(line_buffering=True)
+
     load_env_file()
+    if "--remote-root" not in sys.argv:
+        args.remote_root = os.environ.get("BGA_REMOTE_ROOT", DEFAULT_REMOTE_ROOT)
 
     if not LOCAL_SRC.is_dir():
         sys.exit(f"src/ not found at {LOCAL_SRC}")

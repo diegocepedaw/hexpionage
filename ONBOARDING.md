@@ -267,6 +267,11 @@ You need a BGA Studio account and the `hexpionage` project (it exists —
    emailed them separately when your developer account was created — subject line
    mentions SFTP, and it contains a server name, a username and a password.
 
+   > **Gotcha:** the SFTP username is the *base* name without the dev-account
+   > digit. This project's dev account is `Rewl0`; the SFTP user is **`Rewl`**.
+   > Getting this wrong looks identical to a bad key — `Permission denied
+   > (password,publickey,keyboard-interactive)`.
+
    Better: skip the password entirely. Generate a dedicated key and upload the
    public half at <https://studio.boardgamearena.com/controlpanel>:
    ```bash
@@ -290,6 +295,9 @@ You need a BGA Studio account and the `hexpionage` project (it exists —
    ```bash
    python3 scripts/upload_to_bga.py --check
    ```
+   SFTP drops you in a home directory that *contains* your project folders, so
+   uploads target `hexpionage/`, not the home root. That is the script's default;
+   override with `--remote-root` or `BGA_REMOTE_ROOT`.
 
 3. **Upload.** `src/`'s *contents* go to the Studio project root:
    ```bash
@@ -299,10 +307,13 @@ You need a BGA Studio account and the `hexpionage` project (it exists —
    For password auth instead of a key: `pip install paramiko`, set
    `BGA_SFTP_PASSWORD`, and the script switches automatically.
 
-4. **Delete leftovers on the remote.** The Studio skeleton ships stub state classes
-   (`PlayerTurn`, `NextPlayer`, `EndScore`) under `modules/php/States/`. They will
-   collide with ours. Delete them. Also make sure no `hexpionage.game.php` or
-   `hexpionage.js` survives at the remote root from the pre-refactor era.
+4. **Check for leftovers on the remote.** Done as of 2026-07-28: the skeleton stub
+   state classes (`PlayerTurn`, `NextPlayer`, `EndScore`) were already gone, no
+   `hexpionage.game.php` / `hexpionage.js` survived at the remote root, and the
+   stale `gameinfos.inc.php` was deleted. The remaining non-game files
+   (`LICENCE_BGA`, `_ide_helper.php`, `bga-framework.d.ts`, `package.json`,
+   `tsconfig.json`, `rollup.config.mjs`, `misc/`, `src-disabled/`) are BGA skeleton
+   scaffolding and are harmless — leave them.
 5. **Dry run.** In Studio, "Manage games" → your project → **Dry run build**. Compare
    against `docs/history/HAL_DRY_RUN.md`; every item listed there is now fixed locally, so a clean
    report is the expectation.
