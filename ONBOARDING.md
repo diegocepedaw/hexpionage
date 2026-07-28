@@ -141,7 +141,8 @@ src/
 ├── dbmodel.sql                agent / intel_tile / blockade tables + player columns.
 ├── material.inc.php           Constants: agent & intel types, the 44-hex board tables,
 │                              hex neighbour maths. Loaded by Game.php and states.
-├── hexpionage.view.php        HTML skeleton + 4 modals.
+├── hexpionage_hexpionage.tpl  HTML skeleton + 4 modals. THE markup lives here.
+├── hexpionage.view.php        Controller that fills the .tpl's {TXT_*} variables.
 ├── hexpionage.css             Layout, hex grid, sprites, animations, dark mode.
 ├── img/                       PLACEHOLDER art (see §7).
 └── modules/
@@ -179,12 +180,27 @@ If you have never touched BGA, read `docs/specs/BGA_PRIMER.md`. The short versio
   found on the current state class falls back to the Game class), and each handler
   guards itself with `ensurePhaseIsSpawn()` / `ensurePhaseIsActions()`.
 
-**Client (JS).** `Game.js` uses the classic BGA `define(... declare("bgagame.hexpionage", ebg.core.gamegui, {...}))`
-shape. Three things matter:
+**Client (JS).** `Game.js` is a modern ES module: `export class Game`, which BGA
+instantiates as `new gameModule.Game(bga)`. It does **not** extend `gamegui` — every
+framework helper arrives on the injected `bga` object (`this.bga.actions.performAction`,
+`this.bga.players.isCurrentPlayerActive()`, `this.bga.gameui.notifqueue`, …). `dojo` is
+still a global, so `dojo.subscribe` and `dojo.string.substitute` are used as-is.
+Three things matter:
 
 1. `setup(gamedatas)` — `gamedatas` is whatever `Game::getAllDatas()` returned.
 2. `onEnteringState(stateName, args)` — one `case` per server state name.
 3. `setupNotifications()` + `notif_<name>(n)` — one handler per server notification.
+   It is idempotent: both `setup()` and the framework call it.
+
+> The legacy `define(... declare("bgagame.hexpionage", ebg.core.gamegui, {...}))` shape
+> is only honoured at the **legacy path** `hexpionage.js` in the project root. At
+> `modules/js/Game.js` it exports nothing and the game dies with
+> `gameModule.Game is not a constructor`. `check_contract.php` now guards the export.
+
+**The HTML skeleton** is `src/hexpionage_hexpionage.tpl`, not `hexpionage.view.php`.
+The `.tpl` holds the markup; `view.php::build_page()` only assigns the `{TXT_*}`
+variables the phplib engine substitutes into it. Markup placed after `view.php`'s PHP
+close tag is never rendered — players see raw `{TXT_*}` tokens. Also guarded.
 
 **The contract between them** is `docs/specs/CONTRACT.md`, and it is machine-checked by
 `tools/harness/check_contract.php`.

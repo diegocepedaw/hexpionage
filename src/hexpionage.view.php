@@ -2,7 +2,11 @@
 /**
  * hexpionage.view.php
  *
- * Modern BGA view: emits the HTML skeleton consumed by hexpionage.js.
+ * Controller half of BGA's view/template pair. The HTML skeleton lives in
+ * hexpionage_hexpionage.tpl; this file only assigns the {TXT_*} variables that
+ * the phplib template engine substitutes into it. Anything emitted after this
+ * file's PHP close tag is NOT processed by the engine and reaches the player as
+ * literal text, which is exactly what happened on the first Studio table.
  * Source spec sections:
  *   - UI_SPEC §1 (layout overview)
  *   - UI_SPEC §1.4 (z-index scheme)
