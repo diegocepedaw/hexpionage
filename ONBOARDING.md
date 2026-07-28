@@ -52,7 +52,7 @@ $ ./tools/check.sh
 == PHP syntax ==            all files parse
 == JS syntax ==             ok
 == server/client contract   consistent (26 notifications, 18 actions, 10 states)
-== cross-references         all 442 in-repo path references resolve
+== cross-references         all 474 in-repo path references resolve
 == rules engine             63 assertions passed, 0 failed, 0 playout failures
 ALL CHECKS PASSED
 ```
